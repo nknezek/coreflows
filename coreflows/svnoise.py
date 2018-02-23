@@ -1,8 +1,7 @@
-from .flows import Analyze as mana
-from .flows import Advect as adv
+from . import analyze as mana
+from . import advect as adv
 import numpy as _np
 import dill as _dill
-import FVF_wavefit as fwaves
 
 def fit_lm_sd(lm_data, deg=1, return_real_sd=False):
     ''' fit the mean and standard deviation of a fft coefficient of a set of spherical harmonic coefficients up to l_max
