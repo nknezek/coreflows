@@ -374,28 +374,48 @@ class Waves(Advect):
         return lambda x: _np.polyval(pfit, x)
 
     def hermite_fun(self, x, l):
+        '''compute the hermite basis function of degree l at location x
+
+        :param x:
+        :param l:
+        :return:
+        '''
         c = _np.zeros(40)
         c[l] = 1.
         return (2 ** l * _ms.factorial(l) * _np.pi ** 0.5) ** -0.5 * _np.exp(-x ** 2 / 2) * _np.polynomial.hermite.hermval(
             x, c)
 
-    def hermite_th(self, th, l, thd):
-        x = 3 / thd * th
-        if l >= 0:
-            return  self.hermite_fun(x, l)
-        else:
-            return _np.zeros_like(th)
-
     def hermite_sum(self, x, coeffs, delta_x):
+        '''compute sum of set of hermite basis functions
+
+        :param x: locations x  - np.array((Nx))
+        :param coeffs: coefficients of basis functions  - np.array((Nc))
+        :param delta_x: width parameter of basis functions  - [np.array((Nc)) or float]
+        :return: function along x  - np.array((Nx))
+        '''
         out = _np.zeros_like(x)
         for l in range(len(coeffs)):
             out += coeffs[l] *  self.hermite_fun(x / delta_x, l)
         return out
 
     def hermite_fit_fun(self, x, fit_c):
+        '''define the hermite fit function to use
+
+        :param x: locations - np.array((Nx))
+        :param fit_c: containing coefficients [:Nc] and width parameter [-1] - np.array((Nc+1))
+        :return:
+        '''
         return  self.hermite_sum(x, fit_c[:-1], fit_c[-1])
 
     def fit_with_hermite(self, lat, data, deg, return_coeffs=False):
+        '''fit 1D function to a set of hermite basis functions
+
+        :param lat:
+        :param data:
+        :param deg:
+        :param return_coeffs:
+        :return:
+        '''
         fitfun_data = lambda c: _np.sum((self.hermite_fit_fun(lat, c) - data) ** 2)
         c0 = _np.ones((deg + 1))
         c0[-1] = 10.
@@ -407,7 +427,16 @@ class Waves(Advect):
             return outfun
 
     def fit_horiz_flows_hermite(self, vec, Nk, Nl, deg, FVF, return_coefficients=False):
+        '''fit complex vth,vph to hermite basis functions across co-latitude
 
+        :param vec:
+        :param Nk:
+        :param Nl:
+        :param deg:
+        :param FVF:
+        :param return_coefficients:
+        :return:
+        '''
         Nk = 40
         Nl = 200
         dth = 180 / Nl
@@ -460,6 +489,13 @@ class Waves(Advect):
         return vth, vph, ath, aph
 
     def horiz_flows_given_coeffs(self, lat, coeffs, delta_th_override=None):
+        '''compute horizontal velocity given coefficients
+
+        :param lat:
+        :param coeffs:
+        :param delta_th_override:
+        :return:
+        '''
         if delta_th_override is None:
             vthr = self.hermite_fit_fun(lat, coeffs[0])
             vthi = self.hermite_fit_fun(lat, coeffs[1])
@@ -473,7 +509,7 @@ class Waves(Advect):
         return vthr + vthi * 1j, vphr + vphi * 1j
 
     def u_v_divv(self, l, m, delta_th, c012, lat, ph, t=2010, period=7.5, peak_flow=2., phase=0.):
-        ''' computes the longitudinal (u) and latitudinal (v) flows and divergence at a grid of points specifed by lat and ph
+        ''' compute the longitudinal (u) and latitudinal (v) flows and divergence at a grid of points specifed by lat and ph
 
         :param l:
         :param m:
@@ -499,6 +535,7 @@ class Waves(Advect):
         return u, v, divv
 
     def SV_from_hermite_flows(self, l, B_lmax, c012, t=2010, period=7.5, delta_th=17, peak_flow=2, Nth=200, v_lmax=14, m=6, magmodel=None):
+        '''compute the SV produce from waves parameterized with hermite basis functions'''
         dth = 180 / Nth
         lat = _np.linspace(-90 + dth / 2, 90 - dth / 2, Nth)
         lon = _np.linspace(-180 + dth / 2, 180 - dth / 2, Nth * 2)
