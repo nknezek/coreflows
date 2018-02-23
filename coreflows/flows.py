@@ -1,19 +1,19 @@
-import pyshtools as sht
-import numpy as np
-import coreflows as cm
+import pyshtools as _sht
+import numpy as _np
+import coremagmodels
 
-class Advect(cm.SphereHarmBase):
+class Advect(coremagmodels.models.SphereHarmBase):
     def __init__(self):
         pass
 
     def v2vSH(self, v):
-        return sht.shtools.SHExpandDH(v, norm=1, sampling=2, csphase=1)
+        return _sht._shtools.SHExpandDH(v, norm=1, sampling=2, csphase=1)
 
     def v2vSH_allT(self, v_t):
         lm = (v_t.shape[1]-2)//2
-        vSH_t = np.empty((v_t.shape[0],2,lm+1,lm+1))
+        vSH_t = _np.empty((v_t.shape[0],2,lm+1,lm+1))
         for i in range(v_t.shape[0]):
-            vSH_t[i,:,:,:] = sht.shtools.SHExpandDH(v_t[i,:,:], norm=1, sampling=2, csphase=1)
+            vSH_t[i,:,:,:] = _sht._shtools.SHExpandDH(v_t[i,:,:], norm=1, sampling=2, csphase=1)
         return vSH_t
 
     def vSH2v_allT(self, vSH_t, l_max=None, Nth=None):
@@ -26,10 +26,10 @@ class Advect(cm.SphereHarmBase):
             Nth = lm*2+2
         else:
             lm = (Nth-2)/2
-        v_t = np.empty((len(vSH_t), Nth, Nth*2))
+        v_t = _np.empty((len(vSH_t), Nth, Nth*2))
         for i,vSH in enumerate(vSH_t):
             SH = self._convert_SHin(vSH, l_max=l_max)
-            v_t[i,:,:] = sht.shtools.MakeGridDH(SH, norm=1, sampling=2, csphase=1, lmax_calc=l_max, lmax=lm)
+            v_t[i,:,:] = _sht._shtools.MakeGridDH(SH, norm=1, sampling=2, csphase=1, lmax_calc=l_max, lmax=lm)
         return v_t
 
     def vSH2v(self, vSH, l_max=None, Nth=None):
@@ -42,7 +42,7 @@ class Advect(cm.SphereHarmBase):
         else:
             lm = (Nth-2)/2
         SH = self._convert_SHin(vSH, l_max=l_max)
-        return sht.shtools.MakeGridDH(SH, norm=1, sampling=2, csphase=1, lmax_calc=l_max, lmax=lm)
+        return _sht._shtools.MakeGridDH(SH, norm=1, sampling=2, csphase=1, lmax_calc=l_max, lmax=lm)
 
     def gradient_vSH(self, vSH, l_max=None, Nth=None):
         '''
@@ -63,14 +63,14 @@ class Advect(cm.SphereHarmBase):
         else:
             lm = (Nth - 2) / 2
         SH = self._convert_SHin(vSH, l_max=l_max)
-        out = sht.shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
+        out = _sht._shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
         dth_v = out[1]
         dph_v = out[2]
         return dth_v, dph_v
 
     def gradients_v_allT(self, v_t, Nth=None, l_max=None):
-        dth_t = np.empty_like(v_t)
-        dph_t = np.empty_like(v_t)
+        dth_t = _np.empty_like(v_t)
+        dph_t = _np.empty_like(v_t)
         for i, t in enumerate(range(v_t.shape[0])):
             dSH = self.v2vSH(v_t[i, :, :])
             dth_t[i, :, :], dph_t[i, :, :] = self.gradient_vSH(dSH, l_max=l_max, Nth=Nth)
@@ -92,7 +92,7 @@ class Advect(cm.SphereHarmBase):
         else:
             lm = (Nth-2)/2
         SH = self._convert_SHin(vSH, l_max=l_max)
-        _,dth_v, _, _ = sht.shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
+        _,dth_v, _, _ = _sht._shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
         return dth_v
 
     def dph_v(self, vSH, l_max=14, Nth=None):
@@ -110,7 +110,7 @@ class Advect(cm.SphereHarmBase):
         else:
             lm = (Nth-2)/2
         SH = self._convert_SHin(vSH, l_max=l_max)
-        _,_,dph_v,_ = sht.shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
+        _,_,dph_v,_ = _sht._shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
         return dph_v
 
     def advSV(self, vthSH, vphSH, BSH, l_max=14, Nth=None, B_lmax = None, v_lmax=None, B_in_vSHform=False):
@@ -123,7 +123,7 @@ class Advect(cm.SphereHarmBase):
         if B_in_vSHform:
             dthB, dphB = self.gradient_vSH(BSH, l_max=B_lmax, Nth=Nth)
         else:
-            drB, dthB, dphB = self.gradB_sht(BSH, l_max=B_lmax, Nth=Nth)
+            drB, dthB, dphB = self.gradB__sht(BSH, l_max=B_lmax, Nth=Nth)
         return - vth*dthB - vph*dphB
 
     def divSV(self, vthSH,vphSH,BSH, l_max=14, Nth=None, B_lmax = None, v_lmax=None, B_in_vSHform=False):
@@ -136,7 +136,7 @@ class Advect(cm.SphereHarmBase):
         if B_in_vSHform:
             B = self.vSH2v(BSH, l_max=B_lmax, Nth=Nth)
         else:
-            B = self.B_sht(BSH, l_max=B_lmax, Nth=Nth)
+            B = self.B__sht(BSH, l_max=B_lmax, Nth=Nth)
         return -B*(dthvth + dphvph)
 
     def SV_from_flow(self, vthSH, vphSH, BSH, l_max=14, Nth=None, B_lmax = None, v_lmax=None, B_in_vSHform=False):
@@ -156,7 +156,7 @@ class Advect(cm.SphereHarmBase):
                 + self.divSV(vthSH,vphSH,BSH, l_max=l_max, Nth=Nth, B_lmax = B_lmax, v_lmax=v_lmax, B_in_vSHform=B_in_vSHform)
 
     def SV_steadyflow_allT(self, vthSH, vphSH, BSH_t, Nth, B_lmax=14, v_lmax=14):
-        SVsteadyflow_t = np.empty((len(BSH_t), Nth, Nth * 2))
+        SVsteadyflow_t = _np.empty((len(BSH_t), Nth, Nth * 2))
         for i, bSH in enumerate(BSH_t):
             SVsteadyflow_t[i, :, :] = self.SV_from_flow(vthSH, vphSH, bSH, B_lmax=B_lmax, v_lmax=v_lmax, Nth=Nth)
         return SVsteadyflow_t
@@ -202,7 +202,7 @@ class Advect(cm.SphereHarmBase):
         :param v_lmax:
         :return:
         '''
-        SAsteadyflow_t = np.empty((len(SVsh_t), Nth, Nth * 2))
+        SAsteadyflow_t = _np.empty((len(SVsh_t), Nth, Nth * 2))
         for i, SVsh in enumerate(SVsh_t):
             SAsteadyflow_t[i, :, :] = self.SA_from_flow_SV(vthSH, vphSH, SVsh, B_lmax=B_lmax, v_lmax=v_lmax, Nth=Nth)
         return SAsteadyflow_t
@@ -216,14 +216,14 @@ class Advect(cm.SphereHarmBase):
 
     def t2v(self, torSH, l_max=14):
         z = self._convert_SHin(torSH, l_max=l_max)
-        _, dth, dph, _ = sht.shtools.MakeGravGridDH(z, 3480, 3480, lmax=l_max, sampling=2)
+        _, dth, dph, _ = _sht._shtools.MakeGravGridDH(z, 3480, 3480, lmax=l_max, sampling=2)
         vtht = -dph
         vpht = dth
         return vtht, vpht
 
     def p2v(self, polSH, l_max=14):
         z = self._convert_SHin(polSH, l_max=l_max)
-        _,_,_,_,dtr,dpr = sht.shtools.MakeGravGradGridDH(z, 3480,3480, sampling=2)
+        _,_,_,_,dtr,dpr = _sht._shtools.MakeGravGradGridDH(z, 3480,3480, sampling=2)
         vthp = dtr
         vphp = dpr
         return vthp, vphp
@@ -240,19 +240,19 @@ class Advect(cm.SphereHarmBase):
                 th.append(float(ln_cln[1]))
                 ang.append(float(ln_cln[2]))
                 mag.append(float(ln_cln[3]))
-        th = np.array(th)
-        ph = np.array(ph)
+        th = _np.array(th)
+        ph = _np.array(ph)
         ph = (ph + 180.) % 360. - 180.
-        ang = np.array(ang)
-        mag = np.array(mag)
-        vph = mag * np.sin(ang * np.pi / 180)
-        vth = mag * np.cos(ang * np.pi / 180)
-        keys = np.lexsort((ph, th))
+        ang = _np.array(ang)
+        mag = _np.array(mag)
+        vph = mag * _np.sin(ang * _np.pi / 180)
+        vth = mag * _np.cos(ang * _np.pi / 180)
+        keys = _np.lexsort((ph, th))
         n = int((len(th) / 2) ** 0.5)
-        vth_trans = np.reshape(vth[keys], (n, 2 * n))[::-1, ::]
-        vph_trans = np.reshape(vph[keys], (n, 2 * n))[::-1, ::]
-        th_trans = np.reshape(th[keys], (n, 2 * n))[::-1, ::]
-        ph_trans = np.reshape(ph[keys], (n, 2 * n))[::-1, ::]
+        vth_trans = _np.reshape(vth[keys], (n, 2 * n))[::-1, ::]
+        vph_trans = _np.reshape(vph[keys], (n, 2 * n))[::-1, ::]
+        th_trans = _np.reshape(th[keys], (n, 2 * n))[::-1, ::]
+        ph_trans = _np.reshape(ph[keys], (n, 2 * n))[::-1, ::]
         return th_trans, ph_trans, -vth_trans, vph_trans
 
     def import_fortran_flow_tpSH(self, filename):
@@ -275,30 +275,30 @@ class Advect(cm.SphereHarmBase):
         l_max = int((n + 1) ** 0.5) - 1
         toroidal = raw[:n]
         poloidal = raw[n:]
-        tcoeffs = self._convert_g_raw_to_shtarray(toroidal, l_max=l_max)
-        tSH = sht.SHCoeffs.from_array(tcoeffs, normalization='schmidt', csphase=-1)
-        pcoeffs = self._convert_g_raw_to_shtarray(poloidal, l_max=l_max)
-        pSH = sht.SHCoeffs.from_array(pcoeffs, normalization='schmidt', csphase=-1)
+        tcoeffs = self._convert_g_raw_to__shtarray(toroidal, l_max=l_max)
+        tSH = _sht.SHCoeffs.from_array(tcoeffs, normalization='schmidt', csphase=-1)
+        pcoeffs = self._convert_g_raw_to__shtarray(poloidal, l_max=l_max)
+        pSH = _sht.SHCoeffs.from_array(pcoeffs, normalization='schmidt', csphase=-1)
         return tSH, pSH
 
     # def fit_l_over_t_using_fft(self, T, data, Nfft=10, scale_mult=1):
-    #     dfft = np.fft.fft(data)
-    #     fft_mag = np.random.normal(loc=np.zeros(Nfft), scale=np.abs(dfft[:Nfft])*scale_mult)
-    #     fft_phase = np.random.uniform(size=Nfft)
-    #     ffts = fft_mag * np.exp(1j * 2 * np.pi * fft_phase)
-    #     ys = np.fft.ifft(ffts, n=len(T))
+    #     dfft = _np.fft.fft(data)
+    #     fft_mag = _np.random.normal(loc=_np.zeros(Nfft), scale=_np.abs(dfft[:Nfft])*scale_mult)
+    #     fft_phase = _np.random.uniform(size=Nfft)
+    #     ffts = fft_mag * _np.exp(1j * 2 * _np.pi * fft_phase)
+    #     ys = _np.fft.ifft(ffts, n=len(T))
     #     return ys.real
     #
     # def simulate_coeffs_fft(self, T, shcoeffs_t, Nfft=10, scale_mult=1, scale_l=0, l_max=14):
     #     l_arr = min(shcoeffs_t.shape[2], l_max)
-    #     shcoeffs_sim = np.zeros((shcoeffs_t.shape[0], shcoeffs_t.shape[1], l_arr, l_arr))
+    #     shcoeffs_sim = _np.zeros((shcoeffs_t.shape[0], shcoeffs_t.shape[1], l_arr, l_arr))
     #     for k in range(shcoeffs_t.shape[1]):
     #         for l in range(l_arr):
     #             for m in range(l_arr):
     #                 shcoeffs_sim[:, k, l, m] = self.fit_l_over_t_using_fft(T, shcoeffs_t[:, k, l, m], Nfft=Nfft, scale_mult=scale_mult*(l**scale_l))
     #     return shcoeffs_sim
 
-class Analyze(cm.SphereHarmBase):
+class Analyze(coremagmodels.models.SphereHarmBase):
     def __init__(self):
         pass
 
@@ -323,8 +323,8 @@ class Analyze(cm.SphereHarmBase):
     def _convert_weights(self, f, weights):
         '''converts weights to the correct dimensions for f on a sphere'''
         Nth = f.shape[1]
-        dtt = np.pi / Nth
-        tt = np.linspace(dtt / 2, np.pi - dtt / 2, Nth)
+        dtt = _np.pi / Nth
+        tt = _np.linspace(dtt / 2, _np.pi - dtt / 2, Nth)
 
         if len(weights.shape)==1:
             if weights.shape[0] == 1:
@@ -342,9 +342,9 @@ class Analyze(cm.SphereHarmBase):
                     raise ValueError('weights wrong shape')
         else:
             raise ValueError('weights wrong shape')
-        return np.sin(tt)[None,:,None]*wt
+        return _np.sin(tt)[None,:,None]*wt
 
-    def standard_deviation(self, f, weights=np.ones((1)), fwm=None):
+    def standard_deviation(self, f, weights=_np.ones((1)), fwm=None):
         ''' computes the standard deviation on a sphere of f
 
         :param f:
@@ -354,10 +354,10 @@ class Analyze(cm.SphereHarmBase):
         wt = self._convert_weights(f,weights)
         fw = f*wt
         if fwm is None:
-            fwm = np.mean(fw)
-        return np.sqrt(np.sum((fw - fwm) ** 2))
+            fwm = _np.mean(fw)
+        return _np.sqrt(_np.sum((fw - fwm) ** 2))
 
-    def cross_correlation(self, f, g, weights=np.ones((1)), gw=None, fw=None, fwm=None, gwm=None, fwsd=None, gwsd=None, swt=None):
+    def cross_correlation(self, f, g, weights=_np.ones((1)), gw=None, fw=None, fwm=None, gwm=None, fwsd=None, gwsd=None, swt=None):
         ''' compute cross-correlation of f and g on a sphere with weight function across theta
 
         :param f:
@@ -372,14 +372,14 @@ class Analyze(cm.SphereHarmBase):
         if gw is None:
             gw = g * swt
         if fwm is None:
-            fwm = np.mean(fw)
+            fwm = _np.mean(fw)
         if gwm is None:
-            gwm = np.mean(gw)
+            gwm = _np.mean(gw)
         if fwsd is None:
             fwsd = self.standard_deviation(fw, fwm=fwm)
         if gwsd is None:
             gwsd = self.standard_deviation(gw, fwm=gwm)
-        cross_cov = np.sum((fw - fwm) * (gw - gwm))
+        cross_cov = _np.sum((fw - fwm) * (gw - gwm))
         cross_corr = cross_cov / (fwsd * gwsd)
         return cross_corr
 
@@ -403,25 +403,25 @@ class Analyze(cm.SphereHarmBase):
         dt = T[1] - T[0]
         n = f.shape[1]
         if th is None:
-            th = np.linspace(0, np.pi, n, endpoint=False)
-            dth = np.pi / n
+            th = _np.linspace(0, _np.pi, n, endpoint=False)
+            dth = _np.pi / n
         else:
             dth = th[1] - th[0]
 
         if thmax is not None:
-            min_ind = np.where((90 - thmax) * np.pi / 180 < th)[0][0]
-            max_ind = np.where((90 + thmax) * np.pi / 180 > th)[0][-1]
+            min_ind = _np.where((90 - thmax) * _np.pi / 180 < th)[0][0]
+            max_ind = _np.where((90 + thmax) * _np.pi / 180 > th)[0][-1]
             f = f[:,min_ind:max_ind+1,:]
             g = g[:,min_ind:max_ind+1,:]
             th = th[min_ind:max_ind+1]
 
         if ph is None:
-            dph = 2 * np.pi / (2 * n)
+            dph = 2 * _np.pi / (2 * n)
         else:
             dph = ph[1]-ph[0]
         fg = (f * g)
-        diff = weights*np.sin(th) * dth * dph * R ** 2 * dt
-        conv = np.sum(np.tensordot(fg, diff, axes=(1, 0)))/(4*np.pi*R**2*(T[-1]-T[0]))
+        diff = weights*_np.sin(th) * dth * dph * R ** 2 * dt
+        conv = _np.sum(_np.tensordot(fg, diff, axes=(1, 0)))/(4*_np.pi*R**2*(T[-1]-T[0]))
         return conv
 
     def sweep_convolution(self, data, fit_fun, phases, periods, T, th, ph, thmax=None):
@@ -439,7 +439,7 @@ class Analyze(cm.SphereHarmBase):
         -------
 
         '''
-        power = np.zeros((len(phases), len(periods)))
+        power = _np.zeros((len(phases), len(periods)))
         for i, p in enumerate(phases):
             for j, t in enumerate(periods):
                 power[i, j] = self.convolve(data, fit_fun(p,t), T, th, ph=ph, thmax=thmax)
@@ -455,19 +455,19 @@ class Analyze(cm.SphereHarmBase):
         if lat is None:
             Nth = z.shape[0]
             dth = 180/Nth
-            lat = np.linspace(-90+dth/2,90-dth/2,Nth)
+            lat = _np.linspace(-90+dth/2,90-dth/2,Nth)
         else:
-            dth = (lat[1] - lat[0]) * np.pi / 180
+            dth = (lat[1] - lat[0]) * _np.pi / 180
         if lon is None:
-            Nph = z.shape[1]
-            dph = 360/Nph
-            lon = np.linspace(-180+dph/2,180-dph/2,Nph)
+            nph = z.shape[1]
+            dph = 360/nph
+            lon = _np.linspace(-180+dph/2,180-dph/2,nph)
         else:
-            dph = (lon[1] - lon[0]) * np.pi / 180
+            dph = (lon[1] - lon[0]) * _np.pi / 180
         colat = lat + 90
-        pp, tt = np.meshgrid(lon, colat)
-        area = np.sum(np.abs(weights) * np.sin(tt * np.pi / 180) * dth * dph * R ** 2, axis=axis)
-        return np.sqrt(np.sum(np.abs(z)**2 * weights * np.sin(tt * np.pi / 180) * dth * dph * R ** 2, axis=axis) / area)
+        pp, tt = _np.meshgrid(lon, colat)
+        area = _np.sum(_np.abs(weights) * _np.sin(tt * _np.pi / 180) * dth * dph * R ** 2, axis=axis)
+        return _np.sqrt(_np.sum(_np.abs(z)**2 * weights * _np.sin(tt * _np.pi / 180) * dth * dph * R ** 2, axis=axis) / area)
 
     def rms_region_allT(self, z, lat=None, lon=None, weights=1., R=3480e3, axis=None):
         '''find the rms of z in region of thmin - thmax, pmin-pmax measured in degrees latitude and longitude
@@ -479,18 +479,18 @@ class Analyze(cm.SphereHarmBase):
         if lat is None:
             Nth = z.shape[1]
             dth = 180/Nth
-            lat = np.linspace(-90+dth/2,90-dth/2,Nth)
+            lat = _np.linspace(-90+dth/2,90-dth/2,Nth)
         else:
-            dth = (lat[1] - lat[0]) * np.pi / 180
+            dth = (lat[1] - lat[0]) * _np.pi / 180
         if lon is None:
-            Nph = z.shape[2]
-            dph = 360/Nph
-            lon = np.linspace(-180+dph/2,180-dph/2,Nph)
+            nph = z.shape[2]
+            dph = 360/nph
+            lon = _np.linspace(-180+dph/2,180-dph/2,nph)
         else:
-            dph = (lon[1] - lon[0]) * np.pi / 180
+            dph = (lon[1] - lon[0]) * _np.pi / 180
         colat = lat + 90
-        pp, tt = np.meshgrid(lon, colat)
-        if type(weights) is np.ndarray:
+        pp, tt = _np.meshgrid(lon, colat)
+        if type(weights) is _np.ndarray:
             if len(weights.shape) == 2:
                 if weights.shape == z.shape[1:]:
                     wt = weights
@@ -500,7 +500,7 @@ class Analyze(cm.SphereHarmBase):
                     raise TypeError('weight wrong shape')
             elif len(weights.shape) == 1:
                 if weights.shape[0] == z.shape[1]:
-                    wt = weights[:,np.newaxis].repeat(z.shape[2], axis=1)
+                    wt = weights[:,_np.newaxis].repeat(z.shape[2], axis=1)
                 else:
                     raise TypeError('weight wrong shape')
             else:
@@ -508,10 +508,10 @@ class Analyze(cm.SphereHarmBase):
         elif type(weights) is float:
             wt = weights
 
-        area = np.sum(np.abs(wt) * np.sin(tt * np.pi / 180) * dth * dph * R ** 2, axis=axis)
+        area = _np.sum(_np.abs(wt) * _np.sin(tt * _np.pi / 180) * dth * dph * R ** 2, axis=axis)
         z_rms = 0
         for i in range(z.shape[0]):
-            z_rms += np.sqrt(np.sum(np.abs(z[i,:,:])**2 * wt * np.sin(tt * np.pi / 180) * dth * dph * R ** 2, axis=axis) / area)
+            z_rms += _np.sqrt(_np.sum(_np.abs(z[i,:,:])**2 * wt * _np.sin(tt * _np.pi / 180) * dth * dph * R ** 2, axis=axis) / area)
         return z_rms/z.shape[0]
 
     def weighted_mean_region(self, z, lat=None, lon=None, weights=1., R=3480e3, axis=None):
@@ -525,28 +525,28 @@ class Analyze(cm.SphereHarmBase):
         if lat is None:
             Nth = z.shape[0]
             dth = 180/Nth
-            lat = np.linspace(-90+dth/2,90-dth/2,Nth)
+            lat = _np.linspace(-90+dth/2,90-dth/2,Nth)
         else:
-            dth = (lat[1] - lat[0]) * np.pi / 180
+            dth = (lat[1] - lat[0]) * _np.pi / 180
         if lon is None:
-            Nph = z.shape[1]
-            dph = 360/Nph
-            lon = np.linspace(-180+dph/2,180-dph/2,Nph)
+            nph = z.shape[1]
+            dph = 360/nph
+            lon = _np.linspace(-180+dph/2,180-dph/2,nph)
         else:
-            dph = (lon[1] - lon[0]) * np.pi / 180
+            dph = (lon[1] - lon[0]) * _np.pi / 180
         colat = lat + 90
-        pp, tt = np.meshgrid(lon, colat)
-        area = np.sum(np.abs(weights) * np.sin(tt * np.pi / 180) * dth * dph * R ** 2, axis=axis)
-        return np.sum(z * weights * np.sin(tt * np.pi / 180) * dth * dph * R ** 2, axis=axis) / area
+        pp, tt = _np.meshgrid(lon, colat)
+        area = _np.sum(_np.abs(weights) * _np.sin(tt * _np.pi / 180) * dth * dph * R ** 2, axis=axis)
+        return _np.sum(z * weights * _np.sin(tt * _np.pi / 180) * dth * dph * R ** 2, axis=axis) / area
 
     def weighted_mean_region_allT(self, z, th=None, ph=None, weights=1., R=3480e3, axis=1):
         '''
         computes weighted mean in a region
 
-        :param z: data in nparray with dimension [len(T), len(th), len(ph)]
-        :param th: nparray of colatitudes
-        :param ph: nparray of longitudes
-        :param weights: nparray with dimension [len(th)]
+        :param z: data in _nparray with dimension [len(T), len(th), len(ph)]
+        :param th: _nparray of colatitudes
+        :param ph: _nparray of longitudes
+        :param weights: _nparray with dimension [len(th)]
         :param R: radius of spherical surface
         :param axis: axis upon which to perform mean 0:time, 1: colatitude, 3: longitude. (default: 1)
         :return:
@@ -554,16 +554,16 @@ class Analyze(cm.SphereHarmBase):
         if th is None:
             Nth = z.shape[1]
             dth = 180/Nth
-            th = np.linspace(dth/2,180-dth/2,Nth)
+            th = _np.linspace(dth/2,180-dth/2,Nth)
         else:
-            dth = (th[1] - th[0]) * np.pi / 180
+            dth = (th[1] - th[0]) * _np.pi / 180
         if ph is None:
-            Nph = z.shape[2]
-            dph = 360/Nph
-            ph = np.linspace(dph/2,360-dph/2,Nph)
+            nph = z.shape[2]
+            dph = 360/nph
+            ph = _np.linspace(dph/2,360-dph/2,nph)
         else:
-            dph = (ph[1] - ph[0]) * np.pi / 180
-        pp, tt = np.meshgrid(ph, th)
+            dph = (ph[1] - ph[0]) * _np.pi / 180
+        pp, tt = _np.meshgrid(ph, th)
         if len(weights.shape) == 2:
             if weights.shape == z.shape[1:]:
                 wt = weights
@@ -573,7 +573,7 @@ class Analyze(cm.SphereHarmBase):
                 raise TypeError('weight wrong shape')
         elif len(weights.shape) == 1:
             if weights.shape[0] == z.shape[1]:
-                wt = weights[:,np.newaxis].repeat(z.shape[2], axis=1)
+                wt = weights[:,_np.newaxis].repeat(z.shape[2], axis=1)
             else:
                 raise TypeError('weight wrong shape')
         else:
@@ -581,13 +581,13 @@ class Analyze(cm.SphereHarmBase):
 
         if axis>0:
             area_axis = axis - 1
-            area = np.sum(np.abs(wt) * np.sin(tt * np.pi / 180) * dth * dph * R ** 2, axis=area_axis)
+            area = _np.sum(_np.abs(wt) * _np.sin(tt * _np.pi / 180) * dth * dph * R ** 2, axis=area_axis)
         else:
-            area = np.abs(wt) * np.sin(tt * np.pi / 180) * dth * dph * R ** 2
-        return np.sum(z*wt*np.sin(tt*np.pi/180) * dth * dph * R ** 2, axis=axis) / area
+            area = _np.abs(wt) * _np.sin(tt * _np.pi / 180) * dth * dph * R ** 2
+        return _np.sum(z*wt*_np.sin(tt*_np.pi/180) * dth * dph * R ** 2, axis=axis) / area
 
     def normal(self, x, mu, sigma):
-        return (np.exp(-(x - mu) ** 2 / (2 * sigma ** 2)) / (2 * sigma ** 2 * np.pi) ** 0.5)[:, None]
+        return (_np.exp(-(x - mu) ** 2 / (2 * sigma ** 2)) / (2 * sigma ** 2 * _np.pi) ** 0.5)[:, None]
 
     def compute_frequency_wavenumber(self, y, T, fourier_mult=20):
         '''
@@ -596,19 +596,19 @@ class Analyze(cm.SphereHarmBase):
         '''
         Tend = T[-1]
         Tstart = T[0]
-        Nph = y.shape[1]
+        nph = y.shape[1]
         Nt = y.shape[0]
 
-        Nphf = int(Nph * fourier_mult)
-        Tphf = 1 * fourier_mult / Nphf
+        nphf = int(nph * fourier_mult)
+        Tphf = 1 * fourier_mult / nphf
         Ntf = int(Nt * fourier_mult)
         Ttf = (Tend - Tstart) * fourier_mult / Ntf
 
-        yf = np.fft.fft2(y, s=[Ntf, Nphf])
-        yf = np.fft.fftshift(yf, axes=1)
+        yf = _np.fft.fft2(y, s=[Ntf, nphf])
+        yf = _np.fft.fftshift(yf, axes=1)
 
-        m = np.linspace(-1 / (2 * Tphf), 1 / (2 * Tphf), Nphf)
-        freq = np.linspace(0, 1 / (2 * Ttf), Ntf // 2)
+        m = _np.linspace(-1 / (2 * Tphf), 1 / (2 * Tphf), nphf)
+        freq = _np.linspace(0, 1 / (2 * Ttf), Ntf // 2)
         return m, freq, yf
 
     def compute_frequency_wavenumber_region(self, z, T, fourier_mult=10, m_min=-10, m_max=10,
@@ -618,18 +618,18 @@ class Analyze(cm.SphereHarmBase):
         '''
         m, freq, zf = self.compute_frequency_wavenumber(z, T, fourier_mult=fourier_mult)
         # find proper data to plot
-        ximin = np.where(m > m_min)[0][0]
-        ximax = np.where(m < m_max)[0][-1]
-        yimax = np.where(freq < 1 / period_min)[0][-1]
-        yimin = np.where(freq > 1 / period_max)[0][0]
+        ximin = _np.where(m > m_min)[0][0]
+        ximax = _np.where(m < m_max)[0][-1]
+        yimax = _np.where(freq < 1 / period_min)[0][-1]
+        yimin = _np.where(freq > 1 / period_max)[0][0]
 
         # set up axes
         m_plt = m[ximin:ximax]
         freq_plt = freq[yimin:yimax]
-        z_plt = np.abs(zf[yimin:yimax, ximin:ximax])
+        z_plt = _np.abs(zf[yimin:yimax, ximin:ximax])
 
         if return_axis_labels:
-            freq_label_loc = np.linspace(freq_plt[0], freq_plt[-1], 10)  # 10 is simply the number of labels on chart
+            freq_label_loc = _np.linspace(freq_plt[0], freq_plt[-1], 10)  # 10 is simply the number of labels on chart
             period_labels = ['{:.1f}'.format(1 / x) for x in freq_label_loc]
             return m_plt, freq_plt, z_plt, freq_label_loc, period_labels
         else:
@@ -647,17 +647,17 @@ class Analyze(cm.SphereHarmBase):
         :param latmax:
         :return:
         '''
-        SAcorr = np.empty((len(phases), len(periods)))
-        SVcorr = np.empty((len(phases), len(periods)))
+        SAcorr = _np.empty((len(phases), len(periods)))
+        SVcorr = _np.empty((len(phases), len(periods)))
         if normalize:
-            SAautocorr0 = np.sqrt(self.convolve(SA_t, SA_t, T, weights=weights))
-            SVautocorr0 = np.sqrt(self.convolve(SV_t, SV_t, T, weights=weights))
+            SAautocorr0 = _np.sqrt(self.convolve(SA_t, SA_t, T, weights=weights))
+            SVautocorr0 = _np.sqrt(self.convolve(SV_t, SV_t, T, weights=weights))
         for i, phase in enumerate(phases):
             for j, period in enumerate(periods):
                 SAwave_t, SVwave_t = SASV_from_phaseperiod_function(phase, period)
                 if normalize:
-                    SAautocorr = np.sqrt(self.convolve(SAwave_t, SAwave_t, T, weights=weights)) * SAautocorr0
-                    SVautocorr = np.sqrt(self.convolve(SVwave_t, SVwave_t, T, weights=weights)) * SVautocorr0
+                    SAautocorr = _np.sqrt(self.convolve(SAwave_t, SAwave_t, T, weights=weights)) * SAautocorr0
+                    SVautocorr = _np.sqrt(self.convolve(SVwave_t, SVwave_t, T, weights=weights)) * SVautocorr0
                     SAcorr[i, j] = self.convolve(SAwave_t, SA_t, T, weights=weights)/SAautocorr
                     SVcorr[i, j] = self.convolve(SVwave_t, SV_t, T, weights=weights)/SVautocorr
                 else:
@@ -666,7 +666,7 @@ class Analyze(cm.SphereHarmBase):
             print('finished phase {}/{}'.format(i + 1, len(phases)))
         return SAcorr, SVcorr
 
-    def sweep_SASVcrosscorr(self, phases, periods, T, SA_t, SV_t, SASV_from_phaseperiod_function, weights=np.ones((1)), print_update=True):
+    def sweep_SASVcrosscorr(self, phases, periods, T, SA_t, SV_t, SASV_from_phaseperiod_function, weights=_np.ones((1)), print_update=True):
         ''' computes the cross-correlation between observed SA/SV and SA/SV produced by a wave of a series of periods and phases
 
         :param phases:
@@ -678,16 +678,16 @@ class Analyze(cm.SphereHarmBase):
         :param latmax:
         :return:
         '''
-        SAcrosscorr = np.empty((len(phases), len(periods)))
-        SVcrosscorr = np.empty((len(phases), len(periods)))
+        SAcrosscorr = _np.empty((len(phases), len(periods)))
+        SVcrosscorr = _np.empty((len(phases), len(periods)))
 
         swt = self._convert_weights(SA_t, weights)
         SAswt = SA_t * swt
-        SAswtm = np.mean(SAswt)
+        SAswtm = _np.mean(SAswt)
         SAswtsd = self.standard_deviation(SAswt, fwm=SAswtm)
 
         SVswt = SV_t * swt
-        SVswtm = np.mean(SVswt)
+        SVswtm = _np.mean(SVswt)
         SVswtsd = self.standard_deviation(SVswt, fwm=SVswtm)
 
         for i, phase in enumerate(phases):
@@ -699,7 +699,7 @@ class Analyze(cm.SphereHarmBase):
                 print('\r\t\tfinished phase {}/{}'.format(i + 1, len(phases)), end='')
         return SAcrosscorr, SVcrosscorr
 
-    def sweep_SVcrosscorr(self, phases, periods, T, SV_t, SASV_from_phaseperiod_function, weights=np.ones((1)), print_update=True):
+    def sweep_SVcrosscorr(self, phases, periods, T, SV_t, SASV_from_phaseperiod_function, weights=_np.ones((1)), print_update=True):
         ''' computes the cross-correlation between observed SV and SV produced by a wave of a series of periods and phases
 
         :param phases:
@@ -711,12 +711,12 @@ class Analyze(cm.SphereHarmBase):
         :param latmax:
         :return:
         '''
-        SVcrosscorr = np.empty((len(phases), len(periods)))
+        SVcrosscorr = _np.empty((len(phases), len(periods)))
 
         swt = self._convert_weights(SV_t, weights)
 
         SVswt = SV_t * swt
-        SVswtm = np.mean(SVswt)
+        SVswtm = _np.mean(SVswt)
         SVswtsd = self.standard_deviation(SVswt, fwm=SVswtm)
 
         for i, phase in enumerate(phases):
@@ -739,17 +739,17 @@ class Analyze(cm.SphereHarmBase):
         :param Namps:
         :return:
         '''
-        amp = np.linspace(amp_min, amp_max, Namps)
+        amp = _np.linspace(amp_min, amp_max, Namps)
         args = tuple([amp] * len(SA_waves_list))
         out = itertools.product(*args)
-        misfit = np.empty(Namps ** len(SA_waves_list))
+        misfit = _np.empty(Namps ** len(SA_waves_list))
         for i, amps in enumerate(out):
-            SA_waves = np.zeros_like(SA_waves_list[0])
+            SA_waves = _np.zeros_like(SA_waves_list[0])
             for sa, a in zip(SA_waves_list, amps):
                 SA_waves += sa * a
             misfit[i] = self.rms_region_allT(SA_obs - SA_waves, weights=weights)
-        max_misfit = np.max(np.abs(misfit))
-        return (max_misfit - np.reshape(misfit, [Namps] * len(SA_waves_list)))/max_misfit
+        max_misfit = _np.max(_np.abs(misfit))
+        return (max_misfit - _np.reshape(misfit, [Namps] * len(SA_waves_list)))/max_misfit
 
     def find_best_amplitudes_from_swept(self, amp_swept, amp_min=0.1, amp_max=5, Namps=20, return_inds=False):
         ''' finds the best-fit set of amplitudes given an array of fit values
@@ -761,8 +761,8 @@ class Analyze(cm.SphereHarmBase):
         :param return_inds:
         :return:
         '''
-        ind_max = np.unravel_index(np.argmax(amp_swept), amp_swept.shape)
-        amp = np.linspace(amp_min, amp_max, Namps)
+        ind_max = _np.unravel_index(_np.argmax(amp_swept), amp_swept.shape)
+        amp = _np.linspace(amp_min, amp_max, Namps)
         v_fits = []
         for i in ind_max:
             v_fits.append(amp[i])
@@ -772,11 +772,11 @@ class Analyze(cm.SphereHarmBase):
             return v_fits
 
     def get_peak_phase_period_slice(self, phases, periods, corr, return_peak_location=False):
-        z = np.array(corr.T)
-        z = np.concatenate((z,-z), axis=1)
-        phase_plt = np.linspace(0,360,len(phases)*2, endpoint=False)
-        zpeak = np.max(z)
-        peri,phsi = np.where(z==zpeak)
+        z = _np.array(corr.T)
+        z = _np.concatenate((z,-z), axis=1)
+        phase_plt = _np.linspace(0,360,len(phases)*2, endpoint=False)
+        zpeak = _np.max(z)
+        peri,phsi = _np.where(z==zpeak)
         phase_val = phase_plt[phsi[0]]
         per_val = periods[peri[0]]
         # print("Peak Correlation phase={0:.1f} degrees, period={1:.2f} yrs".format(phase_val, per_val))
@@ -787,13 +787,13 @@ class Analyze(cm.SphereHarmBase):
             return m_slice
 
     def get_peak_phase_period_eachperiod(self, phases, periods, corr):
-        z = np.array(corr.T)
-        z = np.concatenate((z, -z), axis=1)
-        return np.max(z,axis=1)
+        z = _np.array(corr.T)
+        z = _np.concatenate((z, -z), axis=1)
+        return _np.max(z,axis=1)
 
-class SVNoiseModel(flows):
+class SVNoiseModel(Advect):
     def __init__(self):
-        self.mana = analysis()
+        self.mana = Analyze()
 
     def fit_lm_sd(self, lm_data, deg=1, return_real_sd=False):
         ''' fit the mean and standard deviation of a fft coefficient of a set of spherical harmonic coefficients up to l_max
@@ -804,17 +804,17 @@ class SVNoiseModel(flows):
         :return:
         '''
         l_max = lm_data.shape[0] - 1
-        l_weights = np.linspace(1, l_max + 1, l_max + 1)
-        l_values = np.linspace(0, l_max, l_max + 1)
-        mean_by_l = np.empty(l_max + 1)
-        sd_by_l = np.empty(l_max + 1)
+        l_weights = _np.linspace(1, l_max + 1, l_max + 1)
+        l_values = _np.linspace(0, l_max, l_max + 1)
+        mean_by_l = _np.empty(l_max + 1)
+        sd_by_l = _np.empty(l_max + 1)
         for l in range(l_max + 1):
-            mean_by_l[l] = np.mean(lm_data[l, :l + 1])
-            sd_by_l[l] = np.std(lm_data[l, :l + 1])
-        pf = np.polyfit(l_values, mean_by_l, deg, w=l_weights)
-        fit = np.polyval(pf, l_values)
-        pf_sd = np.polyfit(l_values, sd_by_l, deg=1)
-        sd_fit = np.polyval(pf_sd, l_values)
+            mean_by_l[l] = _np.mean(lm_data[l, :l + 1])
+            sd_by_l[l] = _np.std(lm_data[l, :l + 1])
+        pf = _np.polyfit(l_values, mean_by_l, deg, w=l_weights)
+        fit = _np.polyval(pf, l_values)
+        pf_sd = _np.polyfit(l_values, sd_by_l, deg=1)
+        sd_fit = _np.polyval(pf_sd, l_values)
         sd_fit[sd_fit<0.] =0.
         if return_real_sd:
             return fit, sd_fit, sd_by_l
@@ -828,7 +828,7 @@ class SVNoiseModel(flows):
         :param deg:
         :return:
         '''
-        mean, sd = self.fit_lm_sd(np.log10(lm_data), deg=deg)
+        mean, sd = self.fit_lm_sd(_np.log10(lm_data), deg=deg)
         return 10 ** mean, 10 ** (mean - sd), 10 ** (mean + sd)
 
     def fit_lm_sd_in_linear(self, lm_data, deg=1):
@@ -851,15 +851,15 @@ class SVNoiseModel(flows):
         '''
         if Nfft is None:
             Nfft = min(lm_fft.shape[-1], len(deg_fits))
-        fits = np.empty((Nfft, lm_fft.shape[0]))
-        sdls = np.empty((Nfft, lm_fft.shape[0]))
-        sdhs = np.empty((Nfft, lm_fft.shape[0]))
+        fits = _np.empty((Nfft, lm_fft.shape[0]))
+        sdls = _np.empty((Nfft, lm_fft.shape[0]))
+        sdhs = _np.empty((Nfft, lm_fft.shape[0]))
         if log:
             for i in range(Nfft):
-                fits[i, :], sdls[i, :], sdhs[i, :] = self.fit_lm_sd_in_log(np.abs(lm_fft[:, :, i]), deg=deg_fits[i])
+                fits[i, :], sdls[i, :], sdhs[i, :] = self.fit_lm_sd_in_log(_np.abs(lm_fft[:, :, i]), deg=deg_fits[i])
         else:
             for i in range(Nfft):
-                fits[i, :], sdls[i, :], sdhs[i, :] = self.fit_lm_sd_in_linear(np.abs(lm_fft[:, :, i]), deg=deg_fits[i])
+                fits[i, :], sdls[i, :], sdhs[i, :] = self.fit_lm_sd_in_linear(_np.abs(lm_fft[:, :, i]), deg=deg_fits[i])
         return fits, sdls, sdhs
 
     def generate_rand_lm_mags(self, mean, sd, l_max=None, m0_modifier=0.9):
@@ -875,11 +875,11 @@ class SVNoiseModel(flows):
         '''
         if l_max is None:
             l_max = mean.shape[0] - 1
-        rand_vals = np.zeros((l_max + 1, l_max + 1))
+        rand_vals = _np.zeros((l_max + 1, l_max + 1))
         l = 0
-        rand_vals[l:l_max + 1, l] = np.abs(np.random.normal(loc=mean[l:l_max + 1], scale=sd[l:l_max + 1])) * m0_modifier
+        rand_vals[l:l_max + 1, l] = _np.abs(_np.random.normal(loc=mean[l:l_max + 1], scale=sd[l:l_max + 1])) * m0_modifier
         for l in range(1, l_max + 1):
-            rand_vals[l:l_max + 1, l] = np.abs(np.random.normal(loc=mean[l:l_max + 1], scale=sd[l:l_max + 1]))
+            rand_vals[l:l_max + 1, l] = _np.abs(_np.random.normal(loc=mean[l:l_max + 1], scale=sd[l:l_max + 1]))
         return rand_vals
 
     def generate_rand_lm_phases(self, l_max):
@@ -890,9 +890,9 @@ class SVNoiseModel(flows):
         :param l_max:
         :return:
         '''
-        rand_phases = np.zeros((l_max + 1, l_max + 1))
+        rand_phases = _np.zeros((l_max + 1, l_max + 1))
         for l in range(l_max + 1):
-            rand_phases[l:l_max + 1, l] = np.random.uniform(low=-np.pi, high=np.pi, size=l_max + 1 - l)
+            rand_phases[l:l_max + 1, l] = _np.random.uniform(low=-_np.pi, high=_np.pi, size=l_max + 1 - l)
         return rand_phases
 
     def generate_all_rand_lm_magphase(self, lm_fft, degfit_by_fft=[1, 2, 2, 2, 2], log=False):
@@ -906,13 +906,13 @@ class SVNoiseModel(flows):
         l_max = lm_fft.shape[0] - 1
         Nfft = lm_fft.shape[-1]
         if log:
-            lm_mag = np.log10(np.abs(lm_fft))
+            lm_mag = _np.log10(_np.abs(lm_fft))
             m0_modifier = 0.9
         else:
-            lm_mag = np.abs(lm_fft)
+            lm_mag = _np.abs(lm_fft)
             m0_modifier = 0.5
-        rand_mags = np.zeros((l_max + 1, l_max + 1, Nfft))
-        rand_phases = np.zeros((l_max + 1, l_max + 1, Nfft))
+        rand_mags = _np.zeros((l_max + 1, l_max + 1, Nfft))
+        rand_phases = _np.zeros((l_max + 1, l_max + 1, Nfft))
         for n in range(Nfft):
             lm_data = lm_mag[:, :, n]
             mean, sd = self.fit_lm_sd(lm_data, deg=degfit_by_fft[n])
@@ -937,7 +937,7 @@ class SVNoiseModel(flows):
         if Nth is None:
             Nth = lm_fft.shape[0]*2
         rand_mags, rand_phases = self.generate_all_rand_lm_magphase(lm_fft, degfit_by_fft=degfit_by_fft, log=log)
-        rand_fft = rand_mags * np.exp(1j * rand_phases)
+        rand_fft = rand_mags * _np.exp(1j * rand_phases)
         SV_rand_sh = self.get_lm_ifft(T, rand_fft, norm=norm)
         if normalize_to_rms is not None:
             SV_rand, SV_rand_sh, norm_ratio = self.normalize_SV(SVsh_to_normalize=SV_rand_sh, Nth=Nth, rms_norm=normalize_to_rms, weights=norm_weights, return_norm_ratio=True)
@@ -961,7 +961,7 @@ class SVNoiseModel(flows):
         if Nth is None:
             Nth = lm_fft.shape[0]*2
         rand_mags, rand_phases = self.generate_all_rand_lm_magphase(lm_fft, degfit_by_fft=degfit_by_fft, log=log)
-        rand_fft = 1j*np.fft.fftfreq(len(rand_mags), d=T[-1]-T[0])*rand_mags * np.exp(1j * rand_phases)
+        rand_fft = 1j*_np.fft.fftfreq(len(rand_mags), d=T[-1]-T[0])*rand_mags * _np.exp(1j * rand_phases)
         SV_rand_sh = self.get_lm_ifft(T, rand_fft, norm=norm)
         if normalize_to_rms is not None:
             SV_rand, SV_rand_sh, norm_ratio = self.normalize_SV(SVsh_to_normalize=SV_rand_sh, Nth=Nth, rms_norm=normalize_to_rms, weights=norm_weights, return_norm_ratio=True)
@@ -981,14 +981,14 @@ class SVNoiseModel(flows):
         :return:
         '''
         l_max = lm_fft.shape[0] - 1
-        lm_sh = np.zeros((len(T), 2, l_max + 1, l_max + 1))
+        lm_sh = _np.zeros((len(T), 2, l_max + 1, l_max + 1))
         for l in range(l_max + 1):
             for m in range(l + 1):
-                f = np.zeros((len(T)), dtype='complex')
+                f = _np.zeros((len(T)), dtype='complex')
                 Nfreq = (lm_fft.shape[2] - 1) // 2
                 f[:Nfreq + 1] = lm_fft[l, m, :Nfreq + 1]
                 f[-Nfreq:] = lm_fft[l, m, -Nfreq:]
-                ifft = np.fft.ifft(f, n=len(T))
+                ifft = _np.fft.ifft(f, n=len(T))
                 lm_sh[:, 0, l, m] = ifft.real
                 lm_sh[:, 1, l, m] = ifft.imag
         return lm_sh
@@ -1005,11 +1005,11 @@ class SVNoiseModel(flows):
         :return:
         '''
         l_arr = min(shcoeffs_t.shape[2], l_max + 1)
-        lm_fft = np.zeros((l_max + 1, l_max + 1, Nfft), dtype='complex')
+        lm_fft = _np.zeros((l_max + 1, l_max + 1, Nfft), dtype='complex')
         Nfreq = (Nfft - 1) // 2
         for l in range(l_arr):
             for m in range(l + 1):
-                fft = np.fft.fft(shcoeffs_t[:, 0, l, m] + shcoeffs_t[:, 1, l, m] * 1j)
+                fft = _np.fft.fft(shcoeffs_t[:, 0, l, m] + shcoeffs_t[:, 1, l, m] * 1j)
                 ni = (len(fft) - 1) // 2 + 1
                 lm_fft[l, m, 0] = fft[0]
                 lm_fft[l, m, 1:Nfreq + 1] = fft[1:Nfreq + 1]
@@ -1025,10 +1025,10 @@ class SVNoiseModel(flows):
         p = phase
         for i in range(len(p) - 1):
             dp = p[i + 1] - p[i]
-            if dp > np.pi:
-                phase[i + 1:] += -2 * np.pi
-            elif dp < -np.pi:
-                p[i + 1:] += 2 * np.pi
+            if dp > _np.pi:
+                phase[i + 1:] += -2 * _np.pi
+            elif dp < -_np.pi:
+                p[i + 1:] += 2 * _np.pi
         return p
 
     def crop_pwn(self, m, freq, pwn, m_max, T_min, T_max, return_indexes=False):
@@ -1040,10 +1040,10 @@ class SVNoiseModel(flows):
         :param T_max:
         :return:
         '''
-        im_max = np.where(m > m_max)[0][0]
-        im_min = np.where(m > -m_max)[0][0]
-        it_min = np.where(freq > 1 / T_max)[0][0]
-        it_max = np.where(freq > 1 / T_min)[0][0]
+        im_max = _np.where(m > m_max)[0][0]
+        im_min = _np.where(m > -m_max)[0][0]
+        it_min = _np.where(freq > 1 / T_max)[0][0]
+        it_max = _np.where(freq > 1 / T_min)[0][0]
         pwn_ind = ((it_min, it_max+(it_max-it_min)), (im_min, im_max))
         m_out = m[im_min:im_max]
         freq_out = freq[it_min:it_max]
@@ -1059,11 +1059,11 @@ class SVNoiseModel(flows):
         :param data_in:
         :return:
         '''
-        mag = np.abs(data_in)
-        if isinstance(data_in, (list, np.ndarray)):
-            phase = self.unroll_phase(np.arctan2(data_in.imag,data_in.real))
+        mag = _np.abs(data_in)
+        if isinstance(data_in, (list, _np.ndarray)):
+            phase = self.unroll_phase(_np.arctan2(data_in.imag,data_in.real))
         else:
-            phase = np.arctan2(data_in.imag,data_in.real)
+            phase = _np.arctan2(data_in.imag,data_in.real)
         return mag, phase
 
     def get_lm_magphase(self, lm_fft):
@@ -1072,8 +1072,8 @@ class SVNoiseModel(flows):
         :param lm_fft:
         :return:
         '''
-        mag = np.zeros_like(lm_fft, dtype=float)
-        phase = np.zeros_like(lm_fft, dtype=float)
+        mag = _np.zeros_like(lm_fft, dtype=float)
+        phase = _np.zeros_like(lm_fft, dtype=float)
         for l in range(lm_fft.shape[0]):
             for m in range(l+1):
                 for i in range(lm_fft.shape[-1]):
@@ -1128,7 +1128,7 @@ class SVNoiseModel(flows):
         m_save, freq_save, pwn, m_ind, freq_ind, pwn_ind = self.crop_pwn(m,freq, SVsr_pwn, m_max, T_min, T_max, return_indexes=True)
         Nm = len(m_save)
         Nt = len(freq_save)
-        pwn_all = np.empty((N, Nt*2, Nm), dtype=np.float)
+        pwn_all = _np.empty((N, Nt*2, Nm), dtype=_np.float)
         N10 = max(N//10,1)
         for i in range(N):
             if i%N10 == 0:
@@ -1136,7 +1136,7 @@ class SVNoiseModel(flows):
             SVsr, _ = self.generate_rand_SV(T, SVr_fft, degfit_by_fft=degfit, log=logfit, Nth=Nth, normalize_to_rms=SVr_rms, norm_weights=norm_weights, return_norm_ratio=False)
             SVsr_eq = self.mana.weighted_mean_region_allT(SVsr, th=th, weights=pwn_weights)
             _, _, SVsr_pwn  = self.mana.compute_frequency_wavenumber(SVsr_eq, T)
-            pwn_all[i,:,:] = np.abs(SVsr_pwn[pwn_ind[0][0]:pwn_ind[0][1], pwn_ind[1][0]:pwn_ind[1][1],])
+            pwn_all[i,:,:] = _np.abs(SVsr_pwn[pwn_ind[0][0]:pwn_ind[0][1], pwn_ind[1][0]:pwn_ind[1][1],])
         return m_save, freq_save, pwn_all
 
     def save_computed_noise(self, m,freq,pwn_all, filename='computed_noise.m'):
@@ -1147,5 +1147,5 @@ class SVNoiseModel(flows):
         return m,freq,pwn_all
 
     def compute_pwn_percentile(self, pwn_all, p):
-        return np.percentile(pwn_all, p, axis=0)
+        return _np.percentile(pwn_all, p, axis=0)
 
