@@ -441,15 +441,15 @@ class Waves(Advect):
         :return:
         """
         if delta_th_override is None:
-            vthr = self.hermite_fit_fun(lat, coeffs[0])
-            vthi = self.hermite_fit_fun(lat, coeffs[1])
-            vphr = self.hermite_fit_fun(lat, coeffs[2])
-            vphi = self.hermite_fit_fun(lat, coeffs[3])
+            vthr = _herm.fit_fun(lat, coeffs[0])
+            vthi = _herm.fit_fun(lat, coeffs[1])
+            vphr = _herm.fit_fun(lat, coeffs[2])
+            vphi = _herm.fit_fun(lat, coeffs[3])
         else:
-            vthr =  self.hermite_sum(lat, coeffs[0][:-1], delta_th_override)
-            vthi =  self.hermite_sum(lat, coeffs[1][:-1], delta_th_override)
-            vphr =  self.hermite_sum(lat, coeffs[2][:-1], delta_th_override)
-            vphi =  self.hermite_sum(lat, coeffs[3][:-1], delta_th_override)
+            vthr =  _herm.sum(lat, coeffs[0][:-1], delta_th_override)
+            vthi =  _herm.sum(lat, coeffs[1][:-1], delta_th_override)
+            vphr =  _herm.sum(lat, coeffs[2][:-1], delta_th_override)
+            vphi =  _herm.sum(lat, coeffs[3][:-1], delta_th_override)
         return vthr + vthi * 1j, vphr + vphi * 1j
 
     def u_v_divv(self, lat, ph, wave_params, t, c012):
