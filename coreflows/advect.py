@@ -3,6 +3,7 @@ import numpy as _np
 import coremagmodels as _cm
 import scipy.optimize as _op
 from . import hermite as _herm
+
 class Advect(_cm.models.SphereHarmBase):
     def __init__(self):
         super(Advect, self).__init__()
