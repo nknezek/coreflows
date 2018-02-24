@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import numpy as np
-import matplotlib.pyplot as plt
 import coremagmodels as cm
 import coreflows as cf
 sf = cf.advect.SteadyFlow()
