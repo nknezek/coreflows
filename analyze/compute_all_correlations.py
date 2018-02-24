@@ -8,7 +8,11 @@ wv = cf.advect.Waves()
 anl = cf.analyze
 import dill
 import os
-
+import sys
+if len(sys.argv) > 1:
+    delta_ths = [float(a) for a in sys.argv[1:]]
+else:
+    delta_ths = [5,10,15,20,25]
 
 # Import wave fits
 data = dill.load(open('/Users/nknezek/code/coreflows/coreflows/data/wavefits012.p','rb'))
@@ -54,7 +58,7 @@ period_max = 15
 Nperiod = (period_max-period_min)+1
 periods = np.linspace(period_min, period_max, Nperiod, endpoint=False)
 
-for delta_th in [5,10,15,20,25]:
+for delta_th in delta_ths:
     print('delta_th={}'.format(delta_th))
     weights_s = cf.hermite.fun((th-90)/delta_th,0)
     for m in range(-12,12):
