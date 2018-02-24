@@ -2,7 +2,7 @@ import pyshtools as _sht
 import numpy as _np
 import coremagmodels as _cm
 import itertools as _it
-
+import scipy.optimize as _op
 
 def correlation(f, g, T, th=None, ph=None, R=3480., thmax=None):
     '''
@@ -427,7 +427,28 @@ def sweep_SVcrosscorr(phases, periods, T, SV_t, SASV_from_phaseperiod_function, 
             print('\r\t\tfinished phase {}/{}'.format(i + 1, len(phases)), end='')
     return SVcrosscorr
 
-def sweep_amplitudes(SA_obs, SA_waves_list, amp_min=0.1, amp_max=5, Namps=20, weights=1.):
+def get_peak_phase_period_slice(phases, periods, corr, return_peak_location=False):
+    z = _np.array(corr.T)
+    z = _np.concatenate((z,-z), axis=1)
+    phase_plt = _np.linspace(0,360,len(phases)*2, endpoint=False)
+    zpeak = _np.max(z)
+    peri,phsi = _np.where(z==zpeak)
+    phase_val = phase_plt[phsi[0]]
+    per_val = periods[peri[0]]
+    # print("Peak Correlation phase={0:.1f} degrees, period={1:.2f} yrs".format(phase_val, per_val))
+    m_slice = z[:,phsi[0]]
+    if return_peak_location:
+        return m_slice, phase_val, per_val
+    else:
+        return m_slice
+
+def get_peak_phase_period_eachperiod(phases, periods, corr):
+    z = _np.array(corr.T)
+    z = _np.concatenate((z, -z), axis=1)
+    return _np.max(z,axis=1)
+
+#### Amplitude Routines
+def sweep_amplitude_misfit(SA_obs, SA_waves_list, amp_min=0.1, amp_max=5, Namps=20, weights=1.):
     ''' Computes the goodness-of-fit across an array of amplitudes for each wave,
 
     given the observed SA and a list of SA resulting from each wave (with vmax of 1 km/yr)
@@ -448,10 +469,9 @@ def sweep_amplitudes(SA_obs, SA_waves_list, amp_min=0.1, amp_max=5, Namps=20, we
         for sa, a in zip(SA_waves_list, amps):
             SA_waves += sa * a
         misfit[i] = rms_region_allT(SA_obs - SA_waves, weights=weights)
-    max_misfit = _np.max(_np.abs(misfit))
-    return (max_misfit - _np.reshape(misfit, [Namps] * len(SA_waves_list)))/max_misfit
+    return _np.reshape(misfit, [Namps] * len(SA_waves_list))
 
-def find_best_amplitudes_from_swept(amp_swept, amp_min=0.1, amp_max=5, Namps=20, return_inds=False):
+def find_best_from_swept_misfit(amp_swept, amp_min=0.1, amp_max=5, Namps=20, return_inds=False):
     ''' finds the best-fit set of amplitudes given an array of fit values
 
     :param amp_fits:
@@ -461,7 +481,7 @@ def find_best_amplitudes_from_swept(amp_swept, amp_min=0.1, amp_max=5, Namps=20,
     :param return_inds:
     :return:
     '''
-    ind_max = _np.unravel_index(_np.argmax(amp_swept), amp_swept.shape)
+    ind_max = _np.unravel_index(_np.argmin(amp_swept), amp_swept.shape)
     amp = _np.linspace(amp_min, amp_max, Namps)
     v_fits = []
     for i in ind_max:
@@ -471,22 +491,16 @@ def find_best_amplitudes_from_swept(amp_swept, amp_min=0.1, amp_max=5, Namps=20,
     else:
         return v_fits
 
-def get_peak_phase_period_slice(phases, periods, corr, return_peak_location=False):
-    z = _np.array(corr.T)
-    z = _np.concatenate((z,-z), axis=1)
-    phase_plt = _np.linspace(0,360,len(phases)*2, endpoint=False)
-    zpeak = _np.max(z)
-    peri,phsi = _np.where(z==zpeak)
-    phase_val = phase_plt[phsi[0]]
-    per_val = periods[peri[0]]
-    # print("Peak Correlation phase={0:.1f} degrees, period={1:.2f} yrs".format(phase_val, per_val))
-    m_slice = z[:,phsi[0]]
-    if return_peak_location:
-        return m_slice, phase_val, per_val
-    else:
-        return m_slice
+def fit_amplitudes(SA, SAw_normalized, amp0=None, bounds=None):
+    if amp0 is None:
+        amp0 = (1, 1, 1, 1)
+    if bounds is None:
+        bounds = [(0, 4)] * len(amp0)
 
-def get_peak_phase_period_eachperiod(phases, periods, corr):
-    z = _np.array(corr.T)
-    z = _np.concatenate((z, -z), axis=1)
-    return _np.max(z,axis=1)
+    def misfit(amps):
+        mis = _np.array(SA)
+        for i in range(len(SAw_normalized)):
+            mis -= amps[i] * SAw_normalized[i]
+        return rms_region_allT(mis)
+
+    return _op.fmin_slsqp(misfit, amp0, bounds=bounds)

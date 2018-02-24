@@ -2,30 +2,34 @@ import pyshtools as _sht
 import numpy as _np
 import coremagmodels as _cm
 import scipy.optimize as _op
-import scipy.misc as _ms
-
+from . import hermite as _herm
 class Advect(_cm.models.SphereHarmBase):
     def __init__(self):
         super(Advect, self).__init__()
 
-    def v2vSH(self, v):
+    def v2vSH(self, v, l_max=None):
         """convert v at DH grid points to v in SH
 
         :param v:
         :return:
         """
-        return _sht.shtools.SHExpandDH(v, norm=1, sampling=2, csphase=1)
+        lm = (v.shape[0]-2)//2
+        if l_max is not None:
+            lm = min(l_max, lm)
+        return _sht.shtools.SHExpandDH(v, norm=1, sampling=2, csphase=1)[:,:lm+1,:lm+1]
 
-    def v2vSH_allT(self, v_t):
+    def v2vSH_allT(self, v_t, l_max=None):
         """convert v at DH grid points to v in SH at all times T in v_t
 
         :param v_t:
         :return:
         """
         lm = (v_t.shape[1]-2)//2
+        if l_max is not None:
+            lm = min(l_max, lm)
         vSH_t = _np.empty((v_t.shape[0],2,lm+1,lm+1))
         for i in range(v_t.shape[0]):
-            vSH_t[i,:,:,:] = _sht.shtools.SHExpandDH(v_t[i,:,:], norm=1, sampling=2, csphase=1)
+            vSH_t[i,:,:,:] = self.v2vSH(v_t[i,:,:], l_max=lm)
         return vSH_t
 
     def vSH2v_allT(self, vSH_t, l_max=None, Nth=None):
@@ -150,6 +154,7 @@ class Advect(_cm.models.SphereHarmBase):
         :param vthSH: latitudinal velocity in SH [km/yr]
         :param vphSH: longitudinal velocity in SH [km/yr]
         :param BSH: Br at CMB in SH [nT]
+        :param magmodel: coremagmodel class used
         :param l_max: maximum degree of SH to use in computation [-]
         :param Nth: number of latitudinal grid points to output [-]
         :param B_lmax: maximum degree of SH to use for Br [-]
@@ -176,6 +181,7 @@ class Advect(_cm.models.SphereHarmBase):
         :param vthSH: latitudinal velocity in SH [km/yr]
         :param vphSH: longitudinal velocity in SH [km/yr]
         :param BSH: Br at CMB in SH [nT]
+        :param magmodel: coremagmodel class used
         :param l_max: maximum degree of SH to use in computation [-]
         :param Nth: number of latitudinal grid points to output [-]
         :param B_lmax: maximum degree of SH to use for Br [-]
@@ -202,6 +208,7 @@ class Advect(_cm.models.SphereHarmBase):
         :param vthSH: latitudinal flow [km/yr]
         :param vphSH: longitudinal flow [km/yr]
         :param BSH: field [nT]
+        :param magmodel: coremagmodel class used
         :param l_max:
         :param Nth:
         :param B_lmax:
@@ -217,10 +224,13 @@ class Advect(_cm.models.SphereHarmBase):
         :param athSH: latitudinal fl accel [km/yr]
         :param aphSH: longitudinal fl accel [km/yr]
         :param BSH: field [nT]
+        :param magmodel: coremagmodel class used
         :param l_max:
         :param Nth:
         :param B_lmax:
         :param v_lmax:
+        :param B_in_vSHform: B in SH form from using v2vSH function
+
         :return: secular variation [nT/yr]
         """
         return self.SV_from_flow(athSH, aphSH, BSH, magmodel=magmodel, l_max=l_max, Nth=Nth, B_lmax=B_lmax, v_lmax=v_lmax, B_in_vSHform=B_in_vSHform)
@@ -231,10 +241,13 @@ class Advect(_cm.models.SphereHarmBase):
         :param vthSH: latitudinal flow [km/yr]
         :param vphSH: longitudinal flow [km/yr]
         :param svSH: SV [nT/yr]
+        :param magmodel: coremagmodel class used
         :param l_max:
         :param Nth:
         :param B_lmax:
         :param v_lmax:
+        :param B_in_vSHform: B in SH form from using v2vSH function
+
         :return: secular variation [nT/yr]
         """
         return self.SV_from_flow(vthSH, vphSH, svSH, magmodel=magmodel, l_max=l_max, Nth=Nth, B_lmax=B_lmax, v_lmax=v_lmax, B_in_vSHform=B_in_vSHform)
@@ -337,6 +350,7 @@ class SteadyFlow(Advect):
         :param vthSH:
         :param vphSH:
         :param BSH_t:
+        :param magmodel: coremagmodel class used
         :param Nth:
         :param B_lmax:
         :param v_lmax:
@@ -353,6 +367,7 @@ class SteadyFlow(Advect):
         :param vthSH:
         :param vphSH:
         :param SVsh_t:
+        :param magmodel: coremagmodel class used
         :param Nth:
         :param B_lmax:
         :param v_lmax:
@@ -367,44 +382,6 @@ class Waves(Advect):
     def __init__(self):
         super(Waves, self).__init__()
 
-    def fit_polynomial(self, x, y, deg=20):
-        pfit = _np.polyfit(x, y, deg)
-        return lambda x: _np.polyval(pfit, x)
-
-    def hermite_fun(self, x, l):
-        """compute the hermite basis function of degree l at location x
-
-        :param x:
-        :param l:
-        :return:
-        """
-        c = _np.zeros(40)
-        c[l] = 1.
-        return (2 ** l * _ms.factorial(l) * _np.pi ** 0.5) ** -0.5 * _np.exp(-x ** 2 / 2) * _np.polynomial.hermite.hermval(
-            x, c)
-
-    def hermite_sum(self, x, coeffs, delta_x):
-        """compute sum of set of hermite basis functions
-
-        :param x: locations x  - np.array((Nx))
-        :param coeffs: coefficients of basis functions  - np.array((Nc))
-        :param delta_x: width parameter of basis functions  - [np.array((Nc)) or float]
-        :return: function along x  - np.array((Nx))
-        """
-        out = _np.zeros_like(x)
-        for l in range(len(coeffs)):
-            out += coeffs[l] *  self.hermite_fun(x / delta_x, l)
-        return out
-
-    def hermite_fit_fun(self, x, fit_c):
-        """define the hermite fit function to use
-
-        :param x: locations - np.array((Nx))
-        :param fit_c: containing coefficients [:Nc] and width parameter [-1] - np.array((Nc+1))
-        :return:
-        """
-        return  self.hermite_sum(x, fit_c[:-1], fit_c[-1])
-
     def fit_with_hermite(self, lat, data, deg, return_coeffs=False):
         """fit 1D function to a set of hermite basis functions
 
@@ -414,11 +391,11 @@ class Waves(Advect):
         :param return_coeffs:
         :return:
         """
-        fitfun_data = lambda c: _np.sum((self.hermite_fit_fun(lat, c) - data) ** 2)
+        fitfun_data = lambda c: _np.sum((_herm.fit_fun(lat, c) - data) ** 2)
         c0 = _np.ones((deg + 1))
         c0[-1] = 10.
         res = _op.fmin_bfgs(fitfun_data, c0)
-        outfun = lambda x: self.hermite_fit_fun(x, res)
+        outfun = lambda x: _herm.fit_fun(x, res)
         if return_coeffs:
             return outfun, res
         else:
@@ -435,13 +412,11 @@ class Waves(Advect):
         :param return_coefficients:
         :return:
         """
-        Nk = 40
-        Nl = 200
         dth = 180 / Nl
         lat = _np.linspace(-90 + dth / 2, 90 - dth / 2, Nl)
         vec = FVF.anlyze.shift_vec_real_nomodel(vec, Nk, Nl, var='vph')
         vph = FVF.utilities.get_variable_from_vec(vec, 'vph', Nk, Nl)
-        vec = vec / _np.max(_np.abs(vph.real))
+        vec /= _np.max(_np.abs(vph.real))
         vph = FVF.utilities.get_variable_from_vec(vec, 'vph', Nk, Nl)
         vphr = vph[-1, :].real
         vphi = vph[-1, :].imag
@@ -455,36 +430,7 @@ class Waves(Advect):
         if return_coefficients:
             return (ffthr, ffthi, ffphr, ffphi), (cthr, cthi, cphr, cphi)
         else:
-            return (ffthr, ffthi, ffphr, ffphi)
-
-    def horiz_vel_accel(self, l, m, delta_th, c012, lat, ph, t=2010, period=7.5, peak_flow=2., phase=0.):
-        """ compute the horizontal velocity and acceleration of a wave, given its hermite fit constants
-
-        :param l: latitudinal wavenumber of wave
-        :param m: longitudinal wavenumber of wave
-        :param delta_th: latitudinal width of wave
-        :param c012: hermite fit constants
-        :param lat: latitude in [degrees]
-        :param ph: longitude in [degrees]
-        :param t: time in [years]
-        :param period: period of wave in [years]
-        :param peak_flow: maximum flow velocity in [km/yr]
-        :return: vth, vph, ath, aph
-        """
-        lon_grid, lat_grid = _np.meshgrid(ph, lat)
-        vth1, vph1 = self.horiz_flows_given_coeffs(lat, c012[l], delta_th_override=delta_th)
-        v_magnitude = peak_flow / _np.max(_np.abs((vth1 ** 2 + vph1 ** 2) ** 0.5))
-        w = 2 * _np.pi / period * _np.sign(m)
-        m = _np.abs(m)
-        deg2rad = _np.pi / 180
-        phase_offset = _np.mod(phase * deg2rad - w * 2000, 2 * _np.pi)
-        vphi = (vph1[None, :] * _np.exp(1j * (m * lon_grid.T * deg2rad + w * t + phase_offset))).T * v_magnitude
-        vthi = (vth1[None, :] * _np.exp(1j * (m * lon_grid.T * deg2rad + w * t + phase_offset))).T * v_magnitude
-        vph = _np.real(vphi)
-        vth = _np.real(vthi)
-        aph = _np.real(vphi * 1j * w)
-        ath = _np.real(vthi * 1j * w)
-        return vth, vph, ath, aph
+            return ffthr, ffthi, ffphr, ffphi
 
     def horiz_flows_given_coeffs(self, lat, coeffs, delta_th_override=None):
         """compute horizontal velocity given coefficients
@@ -506,23 +452,21 @@ class Waves(Advect):
             vphi =  self.hermite_sum(lat, coeffs[3][:-1], delta_th_override)
         return vthr + vthi * 1j, vphr + vphi * 1j
 
-    def u_v_divv(self, l, m, delta_th, c012, lat, ph, t=2010, period=7.5, peak_flow=2., phase=0.):
+    def u_v_divv(self, lat, ph, wave_params, t, c012):
         """ compute the longitudinal (u) and latitudinal (v) flows and divergence at a grid of points specifed by lat and ph
 
-        :param l:
-        :param m:
-        :param delta_th:
-        :param c012:
-        :param lat:
-        :param ph:
-        :param t:
-        :param period:
-        :param peak_flow: maximum flow velocity in [km/yr]
+        :param lat: latitude vector (deg)
+        :param ph: longitude vector (deg)
+        :param wave_params: tuple or list of wave parameters (l,m,period,vmax, phase, delta_th)
+        :param t: time in [years]
+        :param c012: hermite fit constants
+
         :return:
         """
+        l, m, period, vmax, phase, delta_th = wave_params
         lon_grid, lat_grid = _np.meshgrid(ph, lat)
         vth, vph = self.horiz_flows_given_coeffs(lat, c012[l], delta_th_override=delta_th)
-        v_magnitude = peak_flow / _np.max(_np.abs((vth ** 2 + vph ** 2) ** 0.5))
+        v_magnitude = vmax / _np.max(_np.abs((vth ** 2 + vph ** 2) ** 0.5))
         w = 2 * _np.pi / period
         u = _np.real(vph[:, None] * _np.exp(1j * (m * lon_grid * _np.pi / 180 + w * t + phase))).T * v_magnitude
         v = _np.real(vth[:, None] * _np.exp(1j * (m * lon_grid * _np.pi / 180 + w * t + phase))).T * v_magnitude
@@ -544,20 +488,42 @@ class Waves(Advect):
         SV = self.SV_from_flow(vSH, uSH, sh, B_lmax=B_lmax, v_lmax=v_lmax, Nth=Nth)
         return SV
 
-    def vel_accel_wave_allT(self, l_wave, m, T, delta_th_wave, c012, Nth, phase, period, vmax=1):
+    def vel_accel(self, lat, ph, wave_params, t, c012):
+        """compute the horizontal velocity and acceleration of a wave, given its hermite fit constants
+
+        :param c012: hermite fit constants
+        :param lat: latitude in [degrees]
+        :param ph: longitude in [degrees]
+        :param wave_params: tuple or list of wave parameters (l,m,period,vmax, phase, delta_th)
+        :param t: time in [years]
+        :return: vth, vph, ath, aph
+        """
+        l, m, period, vmax, phase, delta_th = wave_params
+        lon_grid, lat_grid = _np.meshgrid(ph, lat)
+        vth1, vph1 = self.horiz_flows_given_coeffs(lat, c012[l], delta_th_override=delta_th)
+        v_magnitude = vmax / _np.max(_np.abs((vth1 ** 2 + vph1 ** 2) ** 0.5))
+        w = 2 * _np.pi / period * _np.sign(m)
+        m = _np.abs(m)
+        deg2rad = _np.pi / 180
+        phase_offset = _np.mod(phase * deg2rad - w * 2000, 2 * _np.pi)
+        vphi = (vph1[None, :] * _np.exp(1j * (m * lon_grid.T * deg2rad + w * t + phase_offset))).T * v_magnitude
+        vthi = (vth1[None, :] * _np.exp(1j * (m * lon_grid.T * deg2rad + w * t + phase_offset))).T * v_magnitude
+        vph = _np.real(vphi)
+        vth = _np.real(vthi)
+        aph = _np.real(vphi * 1j * w)
+        ath = _np.real(vthi * 1j * w)
+        return vth, vph, ath, aph
+
+    def vel_accel_allT(self, wave_params, T, c012, Nth, vmax=1):
         """ computed velocity and acceleration of the wave in units of km/yr and km/yr^2
 
-        :param l_wave:
-        :param m:
+        :param wave_params: tuple or list of wave parameters (l,m,period,vmax, phase, delta_th)
         :param T:
-        :param delta_th_wave:
         :param c012:
         :param Nth:
-        :param phase:
-        :param period:
-        :param vmax:
         :return:
         """
+
         dlat = 180 / Nth
         lat = _np.linspace(-90 + dlat / 2, 90 - dlat / 2, Nth)
         ph = _np.linspace(dlat / 2, 360 - dlat / 2, Nth * 2)
@@ -566,9 +532,7 @@ class Waves(Advect):
         ath_t = _np.empty((len(T), len(lat), len(ph)))
         aph_t = _np.empty((len(T), len(lat), len(ph)))
         for i, t in enumerate(T):
-            vth_t[i, :, :], vph_t[i, :, :], ath_t[i, :, :], aph_t[i, :, :] = self.horiz_vel_accel(l_wave, m, delta_th_wave,
-                                                                                             c012, lat, ph, t=t,
-                                                                                             period=period, phase=phase)
+            vth_t[i, :, :], vph_t[i, :, :], ath_t[i, :, :], aph_t[i, :, :] = self.vel_accel(lat=lat, ph=ph, wave_params=wave_params, t=t, c012=c012)
         vmag = _np.max(_np.sqrt(vth_t ** 2 + vph_t ** 2))
         vth_t = vth_t * vmax / vmag
         vph_t = vph_t * vmax / vmag
@@ -628,16 +592,12 @@ class Waves(Advect):
         _, dph_vph_t = self.gradients_v_allT(v_ph_t, Nth=Nth, l_max=l_max)
         return dth_vth_t + dph_vph_t
 
-    def compute_SASVwave_allT(self, phase, period, l_wave, m, T, delta_th_wave, c012, Nth,
+    def compute_SASVwave_allT(self, wave_params, T, c012, Nth,
                               B=None, dthB=None, dphB=None, SV=None, dthSV=None, dphSV=None, magmodel=None):
         """ computes the secular acceleration and secular variation over a series of times given all the data required
 
-        :param phase:
-        :param period:
-        :param l_wave:
-        :param m:
+        :param wave_params: tuple or list of wave parameters (l,m,period,vmax, phase, delta_th)
         :param T:
-        :param delta_th_wave:
         :param c012:
         :param Nth:
         :param B:
@@ -661,7 +621,7 @@ class Waves(Advect):
                 SV = magmodel.B_sht_allT(SVsh)
             if dthSV is None or dphSV is None:
                 _, dthSV, dphSV = magmodel.gradB_sht_allT(SVsh)
-        vth_t, vph_t, ath_t, aph_t = self.vel_accel_wave_allT(l_wave, m, T, delta_th_wave, c012, Nth, phase, period)
+        vth_t, vph_t, ath_t, aph_t = self.vel_accel_allT(wave_params, T, c012, Nth)
         divv_t = self.div_allT(vth_t, vph_t, Nth)
         diva_t = self.div_allT(ath_t, aph_t, Nth)
 
@@ -670,7 +630,7 @@ class Waves(Advect):
         SVwave_t = self.SV_wave_allT(B, dthB, dphB, vth_t, vph_t, divv_t)
         return SAwave_t, SVwave_t
 
-    def make_SASV_from_phaseperiod_wave_function(self, l_wave, m, T, delta_th_wave, c012, Nth,
+    def make_SASV_from_phaseperiod_wave_function(self, wave_params, T, c012, Nth,
                                                  B=None, dthB=None, dphB=None, SV=None, dthSV=None, dphSV=None):
-        return lambda phase, period: self.compute_SASVwave_allT(phase, period, l_wave, m, T, delta_th_wave, c012, Nth,
+        return lambda phase, period: self.compute_SASVwave_allT(wave_params, T, c012, Nth,
                                                            B=B, dthB=dthB, dphB=dphB, SV=SV, dthSV=dthSV, dphSV=dphSV)

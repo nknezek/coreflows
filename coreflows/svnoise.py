@@ -1,7 +1,10 @@
-from . import analyze as mana
-from . import advect as adv
+from . import analyze as _anl
+from . import advect as _advect
+from . import hermite as _herm
 import numpy as _np
 import dill as _dill
+
+_adv = _advect.Advect()
 
 def fit_lm_sd(lm_data, deg=1, return_real_sd=False):
     ''' fit the mean and standard deviation of a fft coefficient of a set of spherical harmonic coefficients up to l_max
@@ -49,7 +52,7 @@ def fit_lm_sd_in_linear(lm_data, deg=1):
     mean, sd = fit_lm_sd(lm_data, deg=deg)
     return mean, mean - sd, mean + sd
 
-def fit_all_lm_sd(lm_fft, Nfft=None, deg_fits=[1, 2, 2, 2, 2], log=False):
+def fit_all_lm_sd(lm_fft, Nfft=None, deg_fits=(1,2,2,2,2), log=False):
     ''' fits mean, sdl, sdh for each Fourier coefficient
 
     :param Nfft:
@@ -103,7 +106,7 @@ def generate_rand_lm_phases(l_max):
         rand_phases[l:l_max + 1, l] = _np.random.uniform(low=-_np.pi, high=_np.pi, size=l_max + 1 - l)
     return rand_phases
 
-def generate_all_rand_lm_magphase(lm_fft, degfit_by_fft=[1, 2, 2, 2, 2], log=False):
+def generate_all_rand_lm_magphase(lm_fft, degfit_by_fft=(1,2,2,2,2), log=False):
     ''' generates random magnitudes and phases for each Fourier coefficient for each spherical harmonic lm
 
     :param lm_fft:
@@ -132,7 +135,7 @@ def generate_all_rand_lm_magphase(lm_fft, degfit_by_fft=[1, 2, 2, 2, 2], log=Fal
         rand_mags = 10 ** rand_mags
     return rand_mags, rand_phases
 
-def generate_rand_SV(T, lm_fft, degfit_by_fft=[1, 2, 2, 2, 2], log=False, norm='4pi', Nth=None, normalize_to_rms=None, norm_weights=1., return_norm_ratio=False):
+def generate_rand_SV(T, lm_fft, degfit_by_fft=(1,2,2,2,2), log=False, norm='4pi', Nth=None, normalize_to_rms=None, norm_weights=1., return_norm_ratio=False):
     ''' generates a new realization of the SV resdiual spherical harmonics across time
 
     :param T:
@@ -150,13 +153,13 @@ def generate_rand_SV(T, lm_fft, degfit_by_fft=[1, 2, 2, 2, 2], log=False, norm='
     if normalize_to_rms is not None:
         SV_rand, SV_rand_sh, norm_ratio = normalize_SV(SVsh_to_normalize=SV_rand_sh, Nth=Nth, rms_norm=normalize_to_rms, weights=norm_weights, return_norm_ratio=True)
     else:
-        SV_rand = adv.vSH2v_allT(SV_rand_sh, Nth=Nth)
-    if return_norm_ratio:
+        SV_rand = _adv.vSH2v_allT(SV_rand_sh, Nth=Nth)
+    if return_norm_ratio and normalize_to_rms is not None:
         return SV_rand, SV_rand_sh, norm_ratio
     else:
         return SV_rand, SV_rand_sh
 
-def generate_rand_SA(T, lm_fft, degfit_by_fft=[1, 2, 2, 2, 2], log=False, norm='4pi', Nth=None, normalize_to_rms=None, norm_weights=1., return_norm_ratio=False):
+def generate_rand_SA(T, lm_fft, degfit_by_fft=(1,2,2,2,2), log=False, norm='4pi', Nth=None, normalize_to_rms=None, norm_weights=1., return_norm_ratio=False):
     ''' generates a new realization of the SV resdiual spherical harmonics across time
 
     :param T:
@@ -174,8 +177,8 @@ def generate_rand_SA(T, lm_fft, degfit_by_fft=[1, 2, 2, 2, 2], log=False, norm='
     if normalize_to_rms is not None:
         SV_rand, SV_rand_sh, norm_ratio = normalize_SV(SVsh_to_normalize=SV_rand_sh, Nth=Nth, rms_norm=normalize_to_rms, weights=norm_weights, return_norm_ratio=True)
     else:
-        SV_rand = adv.vSH2v_allT(SV_rand_sh, Nth=Nth)
-    if return_norm_ratio:
+        SV_rand = _adv.vSH2v_allT(SV_rand_sh, Nth=Nth)
+    if return_norm_ratio and normalize_to_rms is not None:
         return SV_rand, SV_rand_sh, norm_ratio
     else:
         return SV_rand, SV_rand_sh
@@ -301,38 +304,38 @@ def normalize_SV(SVsh_to_normalize=None, SV_to_normalize=None, rms_norm=None, SV
         if SV_real is None:
             raise ValueError('Must specify either rms_norm or a SV dataset to normalize to')
         else:
-            rms_norm = mana.rms_region_allT(SV_real, weights=weights)
+            rms_norm = _anl.rms_region_allT(SV_real, weights=weights)
     if SVsh_to_normalize is None:
         if SV_to_normalize is None:
             raise ValueError('must specify either SV_to_normalize or SVsh_to_normalize or both')
         else:
-            SVsh_to_normalize = adv.v2vSH_allT(SV_to_normalize, Nth=Nth, l_max=l_max)
+            SVsh_to_normalize = _adv.v2vSH_allT(SV_to_normalize, l_max=l_max)
     if SV_to_normalize is None:
         if SVsh_to_normalize is None:
             raise ValueError('must specify either SV_to_normalize or SVsh_to_normalize or both')
         else:
-            SV_to_normalize = adv.vSH2v_allT(SVsh_to_normalize, Nth=Nth, l_max=l_max)
-    SV_2norm_rms = mana.rms_region_allT(SV_to_normalize, weights=weights)
+            SV_to_normalize = _adv.vSH2v_allT(SVsh_to_normalize, Nth=Nth, l_max=l_max)
+    SV_2norm_rms = _anl.rms_region_allT(SV_to_normalize, weights=weights)
     norm_ratio = rms_norm/SV_2norm_rms
     if return_norm_ratio:
         return SV_to_normalize*norm_ratio, SVsh_to_normalize*norm_ratio, norm_ratio
     else:
         return SV_to_normalize*norm_ratio, SVsh_to_normalize*norm_ratio
 
-def compute_many_SVsr_pwn(T, SVr, N, pwn_weights=None, Nth=None, Nfft=5, degfit=[1,2,2,2,2], logfit=False, l_max=14, m_max=14, T_min=2.5, T_max=24, norm_weights=1.):
+def compute_many_SVsr_pwn(T, SVr, N, pwn_weights=None, Nth=None, Nfft=5, degfit=(1,2,2,2,2), logfit=False, l_max=14, m_max=14, T_min=2.5, T_max=24, norm_weights=1.):
+    th, ph = _adv.get_thvec_phvec_DH(Nth=SVr.shape[1], l_max=l_max)
     if pwn_weights is None:
-        th, ph = adv.get_thvec_phvec_DH(Nth=SVr.shape[1], l_max=l_max)
         lat = th-90
         sigmath = 16
-        pwn_weights = fwaves.hermite_fun(lat/sigmath, 0)
+        pwn_weights = _herm.fun(lat/sigmath, 0)
     if Nth is None:
         Nth = SVr.shape[1]
-    SVr_rms = mana.rms_region_allT(SVr, weights=norm_weights)
-    SVrsh = adv.v2vSH_allT(SVr)
+    SVr_rms = _anl.rms_region_allT(SVr, weights=norm_weights)
+    SVrsh = _adv.v2vSH_allT(SVr)
     SVr_fft = get_lm_fft(T, SVrsh, Nfft=Nfft, l_max=l_max)
     SVsr, _ = generate_rand_SV(T, SVr_fft, degfit_by_fft=degfit, log=logfit, Nth=Nth, normalize_to_rms=SVr_rms, norm_weights=norm_weights, return_norm_ratio=False)
-    SVsr_eq = mana.weighted_mean_region_allT(SVsr, th=th, weights=pwn_weights)
-    m, freq, SVsr_pwn  = mana.compute_frequency_wavenumber(SVsr_eq, T)
+    SVsr_eq = _anl.weighted_mean_region_allT(SVsr, th=th, weights=pwn_weights)
+    m, freq, SVsr_pwn  = _anl.compute_frequency_wavenumber(SVsr_eq, T)
     m_save, freq_save, pwn, m_ind, freq_ind, pwn_ind = crop_pwn(m,freq, SVsr_pwn, m_max, T_min, T_max, return_indexes=True)
     Nm = len(m_save)
     Nt = len(freq_save)
@@ -342,8 +345,8 @@ def compute_many_SVsr_pwn(T, SVr, N, pwn_weights=None, Nth=None, Nfft=5, degfit=
         if i%N10 == 0:
             print('on step {}/{}'.format(i,N))
         SVsr, _ = generate_rand_SV(T, SVr_fft, degfit_by_fft=degfit, log=logfit, Nth=Nth, normalize_to_rms=SVr_rms, norm_weights=norm_weights, return_norm_ratio=False)
-        SVsr_eq = mana.weighted_mean_region_allT(SVsr, th=th, weights=pwn_weights)
-        _, _, SVsr_pwn  = mana.compute_frequency_wavenumber(SVsr_eq, T)
+        SVsr_eq = _anl.weighted_mean_region_allT(SVsr, th=th, weights=pwn_weights)
+        _, _, SVsr_pwn  = _anl.compute_frequency_wavenumber(SVsr_eq, T)
         pwn_all[i,:,:] = _np.abs(SVsr_pwn[pwn_ind[0][0]:pwn_ind[0][1], pwn_ind[1][0]:pwn_ind[1][1],])
     return m_save, freq_save, pwn_all
 
