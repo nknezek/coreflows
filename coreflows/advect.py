@@ -632,5 +632,10 @@ class Waves(Advect):
 
     def make_SASV_from_phaseperiod_wave_function(self, wave_params, T, c012, Nth,
                                                  B=None, dthB=None, dphB=None, SV=None, dthSV=None, dphSV=None):
-        return lambda phase, period: self.compute_SASVwave_allT(wave_params, T, c012, Nth,
+        def SASV_from_phaseperiod(phase, period):
+            wp = list(wave_params)
+            wp[2] = period
+            wp[4] = phase
+            return self.compute_SASVwave_allT(wp, T, c012, Nth,
                                                            B=B, dthB=dthB, dphB=dphB, SV=SV, dthSV=dthSV, dphSV=dphSV)
+        return SASV_from_phaseperiod

@@ -366,6 +366,7 @@ def sweep_SASVconv(phases, periods, T, SA_t, SV_t, SASV_from_phaseperiod_functio
         print('finished phase {}/{}'.format(i + 1, len(phases)))
     return SAcorr, SVcorr
 
+
 def sweep_SASVcrosscorr(phases, periods, T, SA_t, SV_t, SASV_from_phaseperiod_function, weights=_np.ones((1)), print_update=True):
     ''' computes the cross-correlation between observed SA/SV and SA/SV produced by a wave of a series of periods and phases
 
