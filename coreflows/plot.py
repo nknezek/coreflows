@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib as mpl
-from mpl_toolkits.basemap import Basemap
-
 
 def period_wavenumber(m, freq, yf, Tmin=2.5, Tmax=24, m_max=12, Nylabels=10, title='period-wavenumber',
                            savefig=False, logfft=False, vmin=None, vmax=None, newfig=False, colorbar=True, cblbl=None, cbfmt=None):
