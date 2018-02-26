@@ -13,14 +13,16 @@ if len(sys.argv) > 1:
 else:
     delta_ths = [5,10,15,20,25]
 
+filedir = os.path.dirname(os.path.abspath(__file__))
+datadir = filedir+'/../coreflows/data/'
+
 # Import wave fits
-data = dill.load(open('/Users/nknezek/code/coreflows/coreflows/data/wavefits012.p','rb'))
+data = dill.load(open(datadir+'wavefits012.p','rb'))
 c012 = data['c012']
 f012 = data['f012']
 
 # Import Steady Flow Fit
-filename = '../coreflows/data/steady_flow_fortran_fit'
-th_sf,ph_sf,vth_sf,vph_sf = sf.import_fortran_flow_DH(filename)
+th_sf,ph_sf,vth_sf,vph_sf = sf.import_fortran_flow_DH(datadir+'steady_flow_fortran_fit')
 vth_sfSH = sf.v2vSH(vth_sf)
 vph_sfSH = sf.v2vSH(vph_sf)
 
