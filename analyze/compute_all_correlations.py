@@ -9,7 +9,10 @@ import dill
 import os
 import sys
 if len(sys.argv) > 1:
-    delta_ths = [float(a) for a in sys.argv[1:]]
+    if not sys.argv[1] == 'test':
+        delta_ths = [float(a) for a in sys.argv[1:]]
+    else:
+        delta_ths = [5,10,15,20,25]
 else:
     delta_ths = [5,10,15,20,25]
 
@@ -67,11 +70,16 @@ SA_resid = SA- SA_steadyflow
 ## Compute Many Correlations
 
 Nphase = 18
-phases = np.linspace(0, 180, Nphase, endpoint=False)
-
 period_min = 3
 period_max = 15
 Nperiod = (period_max-period_min)+1
+
+if len(sys.argv) > 1:
+    if sys.argv[1] == 'test':
+        Nphase = 2
+        Nperiod = 2
+
+phases = np.linspace(0, 180, Nphase, endpoint=False)
 periods = np.linspace(period_min, period_max, Nperiod, endpoint=False)
 
 for delta_th in delta_ths:
@@ -80,7 +88,7 @@ for delta_th in delta_ths:
     for m in range(-12,12):
         print('m={}'.format(m))
         for l in (0,1):
-            filename = './correlations/l{}m{}dth{}.m'.format(l,m,delta_th)
+            filename = filedir+'/correlations/l{}m{}dth{}.m'.format(l,m,delta_th)
             if not os.path.isfile(filename):
                 wave_params = (l,m,np.nan,1.,np.nan,delta_th)
                 SASV_from_phaseperiod = wv.make_SASV_from_phaseperiod_wave_function(wave_params, T, c012, Nth,
