@@ -18,6 +18,13 @@ data = dill.load(open('/Users/nknezek/code/coreflows/coreflows/data/wavefits012.
 c012 = data['c012']
 f012 = data['f012']
 
+# Import Steady Flow Fit
+filename = '../coreflows/data/steady_flow_fortran_fit'
+th_sf,ph_sf,vth_sf,vph_sf = sf.import_fortran_flow_DH(filename)
+vth_sfSH = sf.v2vSH(vth_sf)
+vph_sfSH = sf.v2vSH(vph_sf)
+
+# Import magnetic model
 magmod = cm.models.Chaos6()
 T_start = 2001
 T_end = 2016
@@ -47,6 +54,14 @@ SA = magmod.B_sht_allT(SAsh, Nth=Nth, l_max=B_lmax)
 _, dthSA, dphSA = magmod.gradB_sht_allT(SAsh, Nth=Nth, l_max=B_lmax)
 
 
+# Compute Residual SV 
+steadyflow_lmax = 14
+SV_steadyflow = sf.SV_steadyflow_allT(vth_sfSH, vph_sfSH, Bsh, magmodel=magmod, Nth=Nth, B_lmax=B_lmax, v_lmax=steadyflow_lmax)
+SV_resid = SV-SV_steadyflow
+
+SA_steadyflow = sf.SA_steadyflow_allT(vth_sfSH, vph_sfSH, SVsh, magmodel=magmod, Nth=Nth, B_lmax=B_lmax, v_lmax=steadyflow_lmax)
+SA_resid = SA- SA_steadyflow
+
 ## Compute Many Correlations
 
 Nphase = 18
@@ -70,7 +85,7 @@ for delta_th in delta_ths:
                                                                          B=B, dthB=dthB, dphB=dphB, 
                                                                           SV=SV, dthSV=dthSV, dphSV=dphSV)
 
-                SAcorr, SVcorr = cf.analyze.sweep_SASVcrosscorr(phases, periods, T, SA, SV, SASV_from_phaseperiod, 
+                SAcorr, SVcorr = cf.analyze.sweep_SASVcrosscorr(phases, periods, T, SA_resid, SV_resid, SASV_from_phaseperiod, 
                                                                 weights=weights_s)
                 dill.dump((SAcorr,SVcorr),open(filename, 'wb'))
                 
