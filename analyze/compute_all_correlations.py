@@ -8,16 +8,36 @@ anl = cf.analyze
 import dill
 import os
 import sys
+
+delta_ths = []
+wt_type = 'const_sym'
+ls = [0,1]
+outdir = 'correlations'
 if len(sys.argv) > 1:
-    if not sys.argv[1] == 'test':
-        delta_ths = [float(a) for a in sys.argv[1:]]
-    else:
-        delta_ths = [5,10,15,20,25]
+    for i,arg in enumerate(sys.argv):
+        if arg[0] == '-':
+            if arg[1:] == 'dth':
+                delta_ths = [float(x) for x in sys.argv[i+1].split(',')]
+                print('dths={}'.format(delta_ths))
+            elif arg[1:] == 'wt':
+                wt_type = sys.argv[i+1]
+                print('wt='+wt_type)
+            elif arg[1:] == 'wtdth':
+                corr_dth = float(sys.argv[i+1])
+                print('wtdth={}'.format(corr_dth))
+            elif arg[1:] == 'ls':
+                ls = [int(x) for x in sys.argv[i+1].split(',')]
+                print('ls={}'.format(ls))
+            elif arg[1:] == 'outdir':
+                outdir = sys.argv[i+1]
+                print('outdir={}'.format(outdir))
 else:
     delta_ths = [5,10,15,20,25]
 
 filedir = os.path.dirname(os.path.abspath(__file__))
 datadir = filedir+'/../coreflows/data/'
+if not os.path.isfile(filedir+'/'+outdir):
+    os.makedirs(filedir+'/'+outdir)
 
 # Import wave fits
 data = dill.load(open(datadir+'wavefits012.p','rb'))
@@ -75,20 +95,28 @@ period_max = 15
 Nperiod = (period_max-period_min)+1
 
 if len(sys.argv) > 1:
-    if sys.argv[1] == 'test':
-        Nphase = 2
-        Nperiod = 2
+    for i,arg in enumerate(sys.argv[1:]):
+        if arg[0] == '-':
+            if arg[1:] == 'test':
+                Nphase = 2
+                Nperiod = 2
 
 phases = np.linspace(0, 180, Nphase, endpoint=False)
 periods = np.linspace(period_min, period_max, Nperiod, endpoint=False)
-
+if wt_type == 'const_sym':
+    corr_wt = cf.functions.hermite((th-90)/corr_dth, 0)
+elif wt_type == 'square':
+    corr_wt = cf.functions.square((th-90), corr_dth)
 for delta_th in delta_ths:
     print('delta_th={}'.format(delta_th))
-    weights_s = cf.hermite.fun((th-90)/delta_th,0)
+    if wt_type == 'sym':
+        corr_wt = cf.functions.hermite((th-90)/delta_th,0)
     for m in range(-12,12):
         print('m={}'.format(m))
-        for l in (0,1):
-            filename = filedir+'/correlations/l{}m{}dth{}.m'.format(l,m,delta_th)
+        for l in ls:
+            if wt_type == 'empirical':
+                corr_wt = cf.functions.empirical_wavepower((th-90), delta_th)
+            filename = filedir+'/'+outdir+'/l{}m{}dth{}.m'.format(l,m,delta_th)
             if not os.path.isfile(filename):
                 wave_params = (l,m,np.nan,1.,np.nan,delta_th)
                 SASV_from_phaseperiod = wv.make_SASV_from_phaseperiod_wave_function(wave_params, T, c012, Nth,
@@ -96,6 +124,6 @@ for delta_th in delta_ths:
                                                                           SV=SV, dthSV=dthSV, dphSV=dphSV)
 
                 SAcorr, SVcorr = cf.analyze.sweep_SASVcrosscorr(phases, periods, T, SA_resid, SV_resid, SASV_from_phaseperiod, 
-                                                                weights=weights_s)
+                                                                weights=corr_wt)
                 dill.dump((SAcorr,SVcorr),open(filename, 'wb'))
                 

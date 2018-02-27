@@ -1,6 +1,6 @@
 from . import analyze as _anl
 from . import advect as _advect
-from . import hermite as _herm
+from . import functions as _fn
 import numpy as _np
 import dill as _dill
 
@@ -327,7 +327,7 @@ def compute_many_SVsr_pwn(T, SVr, N, pwn_weights=None, Nth=None, Nfft=5, degfit=
     if pwn_weights is None:
         lat = th-90
         sigmath = 16
-        pwn_weights = _herm.fun(lat/sigmath, 0)
+        pwn_weights = _fn.hermite(lat/sigmath, 0)
     if Nth is None:
         Nth = SVr.shape[1]
     SVr_rms = _anl.rms_region_allT(SVr, weights=norm_weights)

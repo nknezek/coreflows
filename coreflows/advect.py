@@ -2,7 +2,7 @@ import pyshtools as _sht
 import numpy as _np
 import coremagmodels as _cm
 import scipy.optimize as _op
-from . import hermite as _herm
+from . import functions as _fn
 
 class Advect(_cm.models.SphereHarmBase):
     def __init__(self):
@@ -392,11 +392,11 @@ class Waves(Advect):
         :param return_coeffs:
         :return:
         """
-        fitfun_data = lambda c: _np.sum((_herm.fit_fun(lat, c) - data) ** 2)
+        fitfun_data = lambda c: _np.sum((_fn.hermite_fit(lat, c) - data) ** 2)
         c0 = _np.ones((deg + 1))
         c0[-1] = 10.
         res = _op.fmin_bfgs(fitfun_data, c0)
-        outfun = lambda x: _herm.fit_fun(x, res)
+        outfun = lambda x: _fn.hermite_fit(x, res)
         if return_coeffs:
             return outfun, res
         else:
@@ -442,15 +442,15 @@ class Waves(Advect):
         :return:
         """
         if delta_th_override is None:
-            vthr = _herm.fit_fun(lat, coeffs[0])
-            vthi = _herm.fit_fun(lat, coeffs[1])
-            vphr = _herm.fit_fun(lat, coeffs[2])
-            vphi = _herm.fit_fun(lat, coeffs[3])
+            vthr = _fn.hermite_fit(lat, coeffs[0])
+            vthi = _fn.hermite_fit(lat, coeffs[1])
+            vphr = _fn.hermite_fit(lat, coeffs[2])
+            vphi = _fn.hermite_fit(lat, coeffs[3])
         else:
-            vthr =  _herm.sum(lat, coeffs[0][:-1], delta_th_override)
-            vthi =  _herm.sum(lat, coeffs[1][:-1], delta_th_override)
-            vphr =  _herm.sum(lat, coeffs[2][:-1], delta_th_override)
-            vphi =  _herm.sum(lat, coeffs[3][:-1], delta_th_override)
+            vthr =  _fn.hermite_sum(lat, coeffs[0][:-1], delta_th_override)
+            vthi =  _fn.hermite_sum(lat, coeffs[1][:-1], delta_th_override)
+            vphr =  _fn.hermite_sum(lat, coeffs[2][:-1], delta_th_override)
+            vphi =  _fn.hermite_sum(lat, coeffs[3][:-1], delta_th_override)
         return vthr + vthi * 1j, vphr + vphi * 1j
 
     def u_v_divv(self, lat, ph, wave_params, t, c012):

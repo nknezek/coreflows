@@ -447,6 +447,7 @@ def get_peak_phase_period_eachperiod(phases, periods, corr):
     z = _np.concatenate((z, -z), axis=1)
     return _np.max(z,axis=1)
 
+
 #### Amplitude Routines
 def sweep_amplitude_misfit(SA_obs, SA_waves_list, amp_min=0.1, amp_max=5, Namps=20, weights=1.):
     ''' Computes the goodness-of-fit across an array of amplitudes for each wave,
