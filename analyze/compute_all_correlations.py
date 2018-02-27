@@ -115,7 +115,7 @@ for delta_th in delta_ths:
         print('m={}'.format(m))
         for l in ls:
             if wt_type == 'empirical':
-                corr_wt = cf.functions.empirical_wavepower((th-90), delta_th)
+                corr_wt = cf.functions.empirical_wavepower((th-90), delta_th, l)
             filename = filedir+'/'+outdir+'/l{}m{}dth{}.m'.format(l,m,delta_th)
             if not os.path.isfile(filename):
                 wave_params = (l,m,np.nan,1.,np.nan,delta_th)
