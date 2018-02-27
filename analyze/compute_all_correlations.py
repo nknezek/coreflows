@@ -10,7 +10,7 @@ import os
 import sys
 
 delta_ths = []
-wt_type = 'const_sym'
+wt_type = 'empirical'
 ls = [0,1]
 outdir = 'correlations'
 if len(sys.argv) > 1:
