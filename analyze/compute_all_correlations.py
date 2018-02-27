@@ -36,7 +36,7 @@ else:
 
 filedir = os.path.dirname(os.path.abspath(__file__))
 datadir = filedir+'/../coreflows/data/'
-if not os.path.isfile(filedir+'/'+outdir):
+if not os.path.exists(filedir+'/'+outdir):
     os.makedirs(filedir+'/'+outdir)
 
 # Import wave fits
