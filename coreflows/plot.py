@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib as mpl
+from . import analyze as _anl
 
 def period_wavenumber(m, freq, yf, Tmin=2.5, Tmax=24, m_max=12, Nylabels=10, title='period-wavenumber',
                            savefig=False, logfft=False, vmin=None, vmax=None, newfig=False, colorbar=True, cblbl=None, cbfmt=None):
@@ -228,33 +229,86 @@ def amplitude_fit_2waves(error, amp_min, amp_max, Namps, newfig=False, title='Am
     if savename:
         plt.savefig(savename)
 
-def longitudetime(z, T, title='Longitude vs Time', newfig=False, vmin=None, vmax=None):
-    T_plt = T
-    ph_plt = np.linspace(0, 360, z.shape[1])
-    xx, yy = np.meshgrid(ph_plt, T_plt)
-    if vmax is None:
-        vmax = np.max(np.abs(z))
-    if vmin is None:
-        vmin = -vmax
-    if newfig:
-        plt.figure()
-    plt.pcolormesh(xx, yy, z, cmap=mpl.cm.PuOr, vmin=vmin, vmax=vmax)
-    plt.xlim(0, 360)
-    plt.ylim(T[0], T[-1])
-    plt.xlabel('longitude (degrees)')
-    plt.ylabel('Time (yr)')
-    plt.title(title)
+### Correlation post-analysis plotting
 
-def vs_latitude(th, z, title=None, savename=None, newfig=True):
-    lat = th-90
-    if newfig:
-        plt.figure(figsize=(8,4))
-    plt.plot(lat, z)
-    plt.xlim(-90,90)
-    if title is not None:
-        plt.title(title)
+def corr_phase(SA, SV, params_wv, params_all):
+    """plot the correlation with phase
+
+    :param SA:
+    :param SV:
+    :param params_wv:
+    :param params_all:
+    :return:
+    """
+    l, m, per, vthm, phase, dth = params_wv
+    saph = SA[l, _anl.get_mi(m), _anl.get_peri(per), 0, :, _anl.get_dthi(dth)]
+    svph = SV[l, _anl.get_mi(m), _anl.get_peri(per), 0, :, _anl.get_dthi(dth)]
+    phaseplt = params_all[4]
+    plt.plot(phaseplt, saph, label='SA')
+    plt.plot(phaseplt, svph, label='SV')
     plt.grid()
-    plt.xlabel('degrees latitude')
-    if savename:
-        plt.savefig(savename)
+    plt.title('phase for l={}, m={}, per={}, dth={}'.format(l, m, per, dth))
+    plt.legend(loc=0)
+    plt.xlabel('phase (deg)')
+    plt.ylabel('correlation')
 
+def corr_dth(SA, SV, params_wv, params_all):
+    l, m, per, vthm, phase, dth = params_wv
+    saph = SA[l, _anl.get_mi(m), _anl.get_peri(per), 0, _anl.get_phsei(phase), :]
+    svph = SV[l, _anl.get_mi(m), _anl.get_peri(per), 0, _anl.get_phsei(phase), :]
+    delth_plt = params_all[5]
+    plt.plot(delth_plt, saph, label='SA')
+    plt.plot(delth_plt, svph, label='SV')
+    plt.grid()
+    plt.title('delth for l={}, m={}, per={}, phase={}'.format(l, m, per, phase))
+    plt.legend(loc=0)
+    plt.xlabel('delta_th (deg)')
+    plt.ylabel('correlation')
+
+def corr_mvper(S, params_all, l=0, phase=None, dth=5, title='', vlims=(0, 0.12), nozero=True):
+    if phase == 'max' or phase is None:
+        Splt = np.max(S[l, :, :, 0, :, _anl.get_dthi(dth)], axis=-1)
+        phase = 'max'
+    else:
+        Splt = S[l, :, :, 0, _anl.get_phsei(phase), _anl.get_dthi(dth)]
+    ms = params_all[1]
+    pers = params_all[2]
+    mplt = np.linspace(ms[0] - .5, ms[-1] + .5, len(ms) + 1)
+    perplt = np.linspace(pers[0] - .5, pers[-1] + .5, len(pers) + 1)
+    if nozero:
+        mplt = np.linspace(-0.5, len(ms) - 1.5, len(ms))
+        Splt = np.vstack((Splt[:_anl.get_mi(0), :], Splt[_anl.get_mi(0) + 1:, :]))
+    plt.pcolormesh(mplt, perplt, Splt.T, vmin=vlims[0], vmax=vlims[1], cmap=plt.cm.jet)
+    if nozero:
+        mlbls = list(range(-11, 0, 2)) + list(range(1, 12, 2))
+        mpltlocs = list(range(1, 12, 2)) + list(range(12, 23, 2))
+        plt.xticks(mpltlocs, mlbls)
+        plt.xlim(.5, )
+    plt.grid()
+    plt.colorbar()
+    plt.xlabel('m')
+    plt.ylabel('period (yr)')
+    plt.title(title + ' l={}, dth={}, phase={}'.format(l, dth, phase))
+
+def corr_pervm_all(SA, SV, params_all, l, title='', save=False):
+    Ni = len(params_all[-1])
+    plt.figure(figsize=(14, 4 * Ni))
+    delta_ths = params_all[5]
+    for i in range(Ni):
+        dth = delta_ths[i]
+        plt.subplot(Ni, 2, 2 * i + 1)
+        corr_mvper(SA, params_all, l=l, dth=dth, title='SAr ' + title)
+        plt.subplot(Ni, 2, 2 * i + 2)
+        corr_mvper(SV, params_all, l=l, dth=dth, title='SVr ' + title)
+    plt.tight_layout()
+    if save:
+        plt.savefig('corr_Tvm_' + title + '_l{}.png'.format(l))
+
+def corr_phase_dth(SA, SV, params_wv, params_all):
+    plt.figure(figsize=(14, 4))
+    plt.subplot(121)
+    corr_phase(SA, SV, params_wv, params_all=params_all)
+    plt.ylim(-.12, 0.12)
+    plt.subplot(122)
+    corr_dth(SA, SV, params_wv, params_all=params_all)
+    plt.ylim(0., 0.12)

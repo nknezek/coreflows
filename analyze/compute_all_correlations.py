@@ -10,9 +10,11 @@ import os
 import sys
 
 delta_ths = []
-wt_type = 'empirical'
+wt_type = 'sq'
+wt_dth = 20
 ls = [0,1]
-outdir = 'correlations'
+outdir = 'corr'
+l_max = 14
 if len(sys.argv) > 1:
     for i,arg in enumerate(sys.argv):
         if arg[0] == '-':
@@ -23,14 +25,17 @@ if len(sys.argv) > 1:
                 wt_type = sys.argv[i+1]
                 print('wt='+wt_type)
             elif arg[1:] == 'wtdth':
-                corr_dth = float(sys.argv[i+1])
-                print('wtdth={}'.format(corr_dth))
+                wt_dth = float(sys.argv[i+1])
+                print('wtdth={}'.format(wt_dth))
             elif arg[1:] == 'ls':
                 ls = [int(x) for x in sys.argv[i+1].split(',')]
                 print('ls={}'.format(ls))
             elif arg[1:] == 'outdir':
                 outdir = sys.argv[i+1]
                 print('outdir={}'.format(outdir))
+            elif arg[1:] == 'lmax':
+                l_max = sys.argv[i+1]
+                print('l_max={}'.format(l_max))
 else:
     delta_ths = [5,10,15,20,25]
 
@@ -53,8 +58,7 @@ vph_sfSH = sf.v2vSH(vph_sf)
 magmod = cm.models.Chaos6()
 T_start = 2001
 T_end = 2016
-l_max = 14
-Nth = 30
+Nth = l_max*2+2
 
 th, ph = magmod.get_thvec_phvec_DH(l_max=l_max)
 Nt = (T_end-T_start)*3
@@ -104,9 +108,9 @@ if len(sys.argv) > 1:
 phases = np.linspace(0, 180, Nphase, endpoint=False)
 periods = np.linspace(period_min, period_max, Nperiod, endpoint=False)
 if wt_type == 'const_sym':
-    corr_wt = cf.functions.hermite((th-90)/corr_dth, 0)
-elif wt_type == 'square':
-    corr_wt = cf.functions.square((th-90), corr_dth)
+    corr_wt = cf.functions.hermite((th-90)/wt_dth, 0)
+elif wt_type == 'sq':
+    corr_wt = cf.functions.square((th-90), wt_dth)
 for delta_th in delta_ths:
     print('delta_th={}'.format(delta_th))
     if wt_type == 'sym':
@@ -114,7 +118,7 @@ for delta_th in delta_ths:
     for m in range(-12,12):
         print('m={}'.format(m))
         for l in ls:
-            if wt_type == 'empirical':
+            if wt_type == 'emp':
                 corr_wt = cf.functions.empirical_wavepower((th-90), delta_th, l)
             filename = filedir+'/'+outdir+'/l{}m{}dth{}.m'.format(l,m,delta_th)
             if not os.path.isfile(filename):

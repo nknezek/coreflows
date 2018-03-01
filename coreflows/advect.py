@@ -593,8 +593,8 @@ class Waves(Advect):
         _, dph_vph_t = self.gradients_v_allT(v_ph_t, Nth=Nth, l_max=l_max)
         return dth_vth_t + dph_vph_t
 
-    def compute_SASVwave_allT(self, wave_params, T, c012, Nth,
-                              B=None, dthB=None, dphB=None, SV=None, dthSV=None, dphSV=None, magmodel=None):
+    def compute_SASVwave_allT(self, wave_params, T, c012, Nth=None, Bdata=None, B=None, dthB=None, dphB=None,
+                              SV=None, dthSV=None, dphSV=None, magmodel=None):
         """ computes the secular acceleration and secular variation over a series of times given all the data required
 
         :param wave_params: tuple or list of wave parameters (l,m,period,vmax, phase, delta_th)
@@ -610,18 +610,23 @@ class Waves(Advect):
         :param magmodel:
         :return:
         """
-        if (B is None) or (dthB is None) or (dthB is None):
-            Bsh = magmodel.get_sht_allT(T)
-            if B is None:
-                B = magmodel.B_sht_allT(Bsh)
-            if dthB is None or dphB is None:
-                _, dthB, dphB = magmodel.gradB_sht_allT(Bsh)
-        if (SV is None) or (dthSV is None) or (dphSV is None):
-            SVsh = magmodel.get_SVsht_allT(T)
-            if SV is None:
-                SV = magmodel.B_sht_allT(SVsh)
-            if dthSV is None or dphSV is None:
-                _, dthSV, dphSV = magmodel.gradB_sht_allT(SVsh)
+        if Bdata is None:
+            if ((B is None) or (dthB is None) or (dthB is None)) and (magmodel is not None):
+                Bsh = magmodel.get_sht_allT(T)
+                if B is None:
+                    B = magmodel.B_sht_allT(Bsh)
+                if dthB is None or dphB is None:
+                    _, dthB, dphB = magmodel.gradB_sht_allT(Bsh)
+            if ((SV is None) or (dthSV is None) or (dphSV is None)) and (magmodel is not None):
+                SVsh = magmodel.get_SVsht_allT(T)
+                if SV is None:
+                    SV = magmodel.B_sht_allT(SVsh)
+                if dthSV is None or dphSV is None:
+                    _, dthSV, dphSV = magmodel.gradB_sht_allT(SVsh)
+        else:
+            B, dthB, dphB, Bsh, SV, dthSV, dphSV, SVsh, SA, dthSA, dphSA, SAsh = Bdata
+        if Nth is None:
+            Nth = B.shape[1]
         vth_t, vph_t, ath_t, aph_t = self.vel_accel_allT(wave_params, T, c012, Nth)
         divv_t = self.div_allT(vth_t, vph_t, Nth)
         diva_t = self.div_allT(ath_t, aph_t, Nth)
@@ -631,12 +636,12 @@ class Waves(Advect):
         SVwave_t = self.SV_wave_allT(B, dthB, dphB, vth_t, vph_t, divv_t)
         return SAwave_t, SVwave_t
 
-    def make_SASV_from_phaseperiod_wave_function(self, wave_params, T, c012, Nth,
+    def make_SASV_from_phaseperiod_wave_function(self, wave_params, T, c012, Nth, Bdata=None,
                                                  B=None, dthB=None, dphB=None, SV=None, dthSV=None, dphSV=None):
         def SASV_from_phaseperiod(phase, period):
             wp = list(wave_params)
             wp[2] = period
             wp[4] = phase
-            return self.compute_SASVwave_allT(wp, T, c012, Nth,
+            return self.compute_SASVwave_allT(wp, T, c012, Nth=Nth, Bdata=Bdata,
                                                            B=B, dthB=dthB, dphB=dphB, SV=SV, dthSV=dthSV, dphSV=dphSV)
         return SASV_from_phaseperiod

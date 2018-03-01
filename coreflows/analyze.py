@@ -3,24 +3,10 @@ import numpy as _np
 import coremagmodels as _cm
 import itertools as _it
 import scipy.optimize as _op
+import dill as _dill
 
-def correlation(f, g, T, th=None, ph=None, R=3480., thmax=None):
-    '''
-    Compute correlation of functions f and g with shapes (i_time, i_th, i_ph) where i_ph = 2*i_th
 
-    Parameters
-    ----------
-    f: dim (N time, N th, N ph)
-    g: dim (N time, N th, N ph)
-    T: array of time coords
-    th: array of theta coords
-    dph: spacing of ph coords
-    R: radius [m]
-
-    Returns
-    -------
-
-    '''
+### Helper functions
 
 def _convert_weights(f, weights):
     '''converts weights to the correct dimensions for f on a sphere'''
@@ -102,6 +88,7 @@ def convolve(f, g, T, th=None, ph=None, R=3480., thmax=None, weights=1.):
     -------
 
     '''
+    raise DeprecationWarning
     dt = T[1] - T[0]
     n = f.shape[1]
     if th is None:
@@ -139,6 +126,7 @@ def sweep_convolution(data, fit_fun, phases, periods, T, th, ph, thmax=None):
     :param thmax:
     :return:
     '''
+    raise DeprecationWarning
     power = _np.zeros((len(phases), len(periods)))
     for i, p in enumerate(phases):
         for j, t in enumerate(periods):
@@ -289,6 +277,8 @@ def weighted_mean_region_allT(z, th=None, ph=None, weights=1., R=3480e3, axis=1)
 def normal(x, mu, sigma):
     return (_np.exp(-(x - mu) ** 2 / (2 * sigma ** 2)) / (2 * sigma ** 2 * _np.pi) ** 0.5)[:, None]
 
+### PWN Analysis
+
 def compute_frequency_wavenumber(y, T, fourier_mult=20):
     '''
     computes freq / wavenumber 2D fft for given data (y), with axes of time [0] and longitude [1].
@@ -335,6 +325,7 @@ def compute_frequency_wavenumber_region(z, T, fourier_mult=10, m_min=-10, m_max=
     else:
         return m_plt, freq_plt, z_plt
 
+## Correlation Analysis
 def sweep_SASVconv(phases, periods, T, SA_t, SV_t, SASV_from_phaseperiod_function, weights=1., normalize=False):
     ''' computes the cross-correlation between observed SA/SV and SA/SV produced by a wave of a series of periods and phases
 
@@ -427,6 +418,65 @@ def sweep_SVcrosscorr(phases, periods, T, SV_t, SASV_from_phaseperiod_function, 
             print('\r\t\tfinished phase {}/{}'.format(i + 1, len(phases)), end='')
     return SVcrosscorr
 
+
+### Correlation Post-Analysis Functions
+def stackphase(S):
+    """code computes only 0-180 deg, stack output to get full 0-360 deg"""
+    return _np.hstack((S, -S))
+
+def unroll_phase(phases):
+    """plot phases continuously on -inf < th < inf instead of 0 < th < 360 with wrap-around. """
+    dist = 90
+    phases = _np.array(phases)
+    for i in range(len(phases) - 1):
+        p1 = phases[i + 1]
+        p0 = phases[i]
+        dp = p1 - p0
+        if (_np.abs(p1 % 360 - 360) < dist) or (_np.abs(p1 % 360) < dist):
+            if (_np.abs(p0 % 360 - 360) < dist) or (_np.abs(p0 % 360) < dist):
+                if p0 % 360 > 180 and p1 % 360 < 180:
+                    phases[i + 1:] += 360
+                elif p0 % 360 < 180 and p1 % 360 > 180:
+                    phases[i + 1:] -= 360
+    return phases
+
+def load_corr(dirname, params, dthfloat=True):
+    Nparams = [len(x) for x in params]
+    SAcorr = _np.zeros(Nparams)
+    SVcorr = _np.zeros(Nparams)
+    Nl, Nm, Nperiod, Nvm, Nphaseplt, Ndelth = Nparams
+    Nphase = int(Nphaseplt/2)
+    ls, ms, periods, vmaxs, phaseplt, delta_ths = params
+    for il in range(Nl):
+        for im in range(Nm):
+            for idth in range(Ndelth):
+                for ivm in range(Nvm):
+                    if dthfloat:
+                        filename = dirname + 'l{}m{}dth{:.1f}.m'.format(ls[il], ms[im], delta_ths[idth])
+                    else:
+                        filename = dirname + 'l{}m{}dth{:.0f}.m'.format(ls[il], ms[im], delta_ths[idth])
+                    try:
+                        SAc, SVc = _dill.load(open(filename, 'rb'))
+                    except:
+                        print('no file ' + filename + ' filling with nans')
+                        SAc = _np.ones((Nperiod, Nphase)).T * _np.nan
+                        SVc = _np.ones((Nperiod, Nphase)).T * _np.nan
+                    SAcorr[il, im, :, ivm, :, idth] = stackphase(SAc.T)
+                    SVcorr[il, im, :, ivm, :, idth] = stackphase(SVc.T)
+    return SAcorr, SVcorr
+
+def get_mi(m, minm=-12, dm=1):
+    return (m - minm) // dm
+
+def get_peri(per, minper=3, dper=1):
+    return (per - minper) // dper
+
+def get_phsei(phase, minphase=0, dphase=10):
+    return (phase - minphase) // dphase
+
+def get_dthi(dth, mindth=5, ddth=5):
+    return (dth - mindth) // ddth
+
 def get_peak_phase_period_slice(phases, periods, corr, return_peak_location=False):
     z = _np.array(corr.T)
     z = _np.concatenate((z,-z), axis=1)
@@ -492,16 +542,19 @@ def find_best_from_swept_misfit(amp_swept, amp_min=0.1, amp_max=5, Namps=20, ret
     else:
         return v_fits
 
-def fit_amplitudes(SA, SAw_normalized, amp0=None, bounds=None):
+def fit_amplitudes(SA, SAw_normalized, amp0=None, bounds=None, weights=1., opfun=None):
+    if opfun is None:
+        opfun = _op.fmin_slsqp
     if amp0 is None:
-        amp0 = (1, 1, 1, 1)
+        amp0 = [1.]*len(SAw_normalized)
     if bounds is None:
-        bounds = [(0, 4)] * len(amp0)
+        bounds = [(0, 4)] * len(SAw_normalized)
 
     def misfit(amps):
         mis = _np.array(SA)
         for i in range(len(SAw_normalized)):
             mis -= amps[i] * SAw_normalized[i]
-        return rms_region_allT(mis)
+        return rms_region_allT(mis, weights=weights)
 
-    return _op.fmin_slsqp(misfit, amp0, bounds=bounds)
+    res = opfun(misfit, amp0, bounds=bounds)
+    return res
