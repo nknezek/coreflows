@@ -9,13 +9,14 @@ import dill
 import os
 import sys
 
-delta_ths = []
-wt_type = 'sq'
-wt_dth = 20
+wt_type = 'emp'
+wt_dth = 10
 ls = [0,1]
-outdir = 'corr'
+outdir = 'corr_syn'
 l_max = 14
 B_lmax = 14
+delta_ths = [15]
+
 if len(sys.argv) > 1:
     for i,arg in enumerate(sys.argv):
         if arg[0] == '-':
@@ -38,10 +39,9 @@ if len(sys.argv) > 1:
                 l_max = sys.argv[i+1]
                 print('l_max={}'.format(l_max))
             elif arg[1:] == 'blmax':
-                B_lmax = sys.argv[i+1]
-                print('Bl_max={}'.format(B_lmax))
-else:
-    delta_ths = [5,10,15,20,25]
+                B_lmax = int(sys.argv[i+1])
+                print('B_lmax={}'.format(B_lmax))
+
 
 filedir = os.path.dirname(os.path.abspath(__file__))
 datadir = filedir+'/../coreflows/data/'
@@ -58,10 +58,15 @@ th_sf,ph_sf,vth_sf,vph_sf = sf.import_fortran_flow_DH(datadir+'steady_flow_fortr
 vth_sfSH = sf.v2vSH(vth_sf)
 vph_sfSH = sf.v2vSH(vph_sf)
 
+# Import data for 4 synthetic waves
+syn_data = dill.load(open('../test/data_4_waves.m','rb'))
+SAw = syn_data['SAw']
+SVw = syn_data['SAw']
+
 # Import magnetic model
 magmod = cm.models.Chaos6()
 T_start = 2001
-T_end = 2016
+T_end = 2015
 Nth = l_max*2+2
 
 th, ph = magmod.get_thvec_phvec_DH(l_max=l_max)
@@ -85,14 +90,6 @@ SAsh = magmod.get_SAsht_allT(T, l_max=B_lmax)
 SA = magmod.B_sht_allT(SAsh, Nth=Nth, l_max=B_lmax)
 _, dthSA, dphSA = magmod.gradB_sht_allT(SAsh, Nth=Nth, l_max=B_lmax)
 
-
-# Compute Residual SV 
-steadyflow_lmax = 14
-SV_steadyflow = sf.SV_steadyflow_allT(vth_sfSH, vph_sfSH, Bsh, magmodel=magmod, Nth=Nth, B_lmax=B_lmax, v_lmax=steadyflow_lmax)
-SV_resid = SV-SV_steadyflow
-
-SA_steadyflow = sf.SA_steadyflow_allT(vth_sfSH, vph_sfSH, SVsh, magmodel=magmod, Nth=Nth, B_lmax=B_lmax, v_lmax=steadyflow_lmax)
-SA_resid = SA- SA_steadyflow
 
 ## Compute Many Correlations
 
@@ -130,7 +127,7 @@ for delta_th in delta_ths:
                                                                          B=B, dthB=dthB, dphB=dphB, 
                                                                           SV=SV, dthSV=dthSV, dphSV=dphSV)
 
-                SAcorr, SVcorr = cf.analyze.sweep_SASVcrosscorr(phases, periods, T, SA_resid, SV_resid, SASV_from_phaseperiod, 
+                SAcorr, SVcorr = cf.analyze.sweep_SASVcrosscorr(phases, periods, T, SAw, SVw, SASV_from_phaseperiod, 
                                                                 weights=corr_wt)
                 dill.dump((SAcorr,SVcorr),open(filename, 'wb'))
                 
