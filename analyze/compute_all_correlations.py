@@ -10,12 +10,12 @@ import os
 import sys
 
 delta_ths = []
-wt_type = 'sq'
-wt_dth = 20
+wt_type = 'emp'
+wt_dth = 10
 ls = [0,1]
-outdir = 'corr'
+outdir = 'corrs'
 l_max = 14
-B_lmax = 14
+Nth = l_max*2+2
 if len(sys.argv) > 1:
     for i,arg in enumerate(sys.argv):
         if arg[0] == '-':
@@ -37,9 +37,9 @@ if len(sys.argv) > 1:
             elif arg[1:] == 'lmax':
                 l_max = sys.argv[i+1]
                 print('l_max={}'.format(l_max))
-            elif arg[1:] == 'blmax':
-                B_lmax = sys.argv[i+1]
-                print('Bl_max={}'.format(B_lmax))
+            elif arg[1:] == 'Nth':
+                Nth = sys.argv[i+1]
+                print('Nth={}'.format(Nth))
 else:
     delta_ths = [5,10,15,20,25]
 
@@ -62,7 +62,7 @@ vph_sfSH = sf.v2vSH(vph_sf)
 magmod = cm.models.Chaos6()
 T_start = 2001
 T_end = 2016
-Nth = l_max*2+2
+
 
 th, ph = magmod.get_thvec_phvec_DH(l_max=l_max)
 Nt = (T_end-T_start)*3
@@ -70,6 +70,7 @@ T = np.linspace(T_start, T_end, Nt)
 
 
 # compute magnetic field data over timeframe
+B_lmax = 14
 
 th, ph = magmod.get_thvec_phvec_DH(Nth)
 
