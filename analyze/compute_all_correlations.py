@@ -38,7 +38,7 @@ if len(sys.argv) > 1:
                 l_max = sys.argv[i+1]
                 print('l_max={}'.format(l_max))
             elif arg[1:] == 'Nth':
-                Nth = sys.argv[i+1]
+                Nth = int(sys.argv[i+1])
                 print('Nth={}'.format(Nth))
 else:
     delta_ths = [5,10,15,20,25]
