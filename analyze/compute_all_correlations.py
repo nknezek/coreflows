@@ -15,7 +15,7 @@ wt_dth = 10
 ls = [0,1]
 outdir = 'corrs'
 l_max = 14
-Nth = l_max*2+2
+Nth = 60
 if len(sys.argv) > 1:
     for i,arg in enumerate(sys.argv):
         if arg[0] == '-':

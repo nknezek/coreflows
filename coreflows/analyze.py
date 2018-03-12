@@ -469,7 +469,7 @@ def get_mi(m, minm=-12, dm=1):
     return (m - minm) // dm
 
 def get_peri(per, minper=3, dper=1):
-    return (per - minper) // dper
+    return int((per - minper) // dper)
 
 def get_phsei(phase, minphase=0, dphase=10):
     return (phase - minphase) // dphase
@@ -497,6 +497,30 @@ def get_peak_phase_period_eachperiod(phases, periods, corr):
     z = _np.concatenate((z, -z), axis=1)
     return _np.max(z,axis=1)
 
+def get_corr_phase(S, wave_params, params):
+    l,m,per,vmax,phase,dth = wave_params
+    ls,ms,pers,vmaxs,phases,dths = params
+    sph = S[l, get_mi(m), get_peri(per), 0, :, get_dthi(dth)]
+    return sph
+
+def find_phasemax(S, wave_params, params):
+    sph = get_corr_phase(S, wave_params, params)
+    sph /= _np.max(sph)
+    phaseplt = params[4]
+    def phfit(pmax):
+        y = _np.cos((phaseplt-pmax)*_np.pi/180)
+        return _np.sum((y-sph)**2)
+    out = _op.minimize(phfit,0)
+    pmax = out.x[0] % 360  
+    return pmax
+
+def set_phasemax_list(S, wave_params_list, params):
+    out_list = []
+    for wp in wave_params_list:
+        nwp = list(wp)
+        nwp[4] = find_phasemax(S, wp, params)
+        out_list.append(tuple(nwp))
+    return out_list
 
 #### Amplitude Routines
 def sweep_amplitude_misfit(SA_obs, SA_waves_list, amp_min=0.1, amp_max=5, Namps=20, weights=1.):
