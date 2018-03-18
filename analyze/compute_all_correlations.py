@@ -16,6 +16,9 @@ ls = [0,1]
 outdir = 'corrs'
 l_max = 14
 Nth = 60
+T_start = 2001
+T_end = 2016
+
 if len(sys.argv) > 1:
     for i,arg in enumerate(sys.argv):
         if arg[0] == '-':
@@ -40,6 +43,12 @@ if len(sys.argv) > 1:
             elif arg[1:] == 'Nth':
                 Nth = int(sys.argv[i+1])
                 print('Nth={}'.format(Nth))
+            elif arg[1:] == 'ts':
+                T_start = float(sys.argv[i+1])
+                print('T_start={}'.format(T_start))
+            elif arg[1:] == 'te':
+                T_end = float(sys.argv[i+1])
+                print('T_end={}'.format(T_end))
 else:
     delta_ths = [5,10,15,20,25]
 
@@ -60,8 +69,6 @@ vph_sfSH = sf.v2vSH(vph_sf)
 
 # Import magnetic model
 magmod = cm.models.Chaos6()
-T_start = 2001
-T_end = 2016
 
 
 th, ph = magmod.get_thvec_phvec_DH(l_max=l_max)
