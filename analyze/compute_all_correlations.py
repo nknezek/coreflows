@@ -9,7 +9,7 @@ import dill
 import os
 import sys
 
-delta_ths = []
+delta_ths = [8]
 wt_type = 'emp'
 wt_dth = 10
 ls = [0,1]
@@ -49,8 +49,6 @@ if len(sys.argv) > 1:
             elif arg[1:] == 'te':
                 T_end = float(sys.argv[i+1])
                 print('T_end={}'.format(T_end))
-else:
-    delta_ths = [5,10,15,20,25]
 
 filedir = os.path.dirname(os.path.abspath(__file__))
 datadir = filedir+'/../coreflows/data/'
