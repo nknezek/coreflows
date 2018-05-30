@@ -137,6 +137,7 @@ def longitudetime(z, T, title='Longitude vs Time', newfig=False, vmin=None, vmax
     plt.xlabel('longitude (degrees)')
     plt.ylabel('Time (yr)')
     plt.title(title)
+    return plt.gcf()
 
 def correlation_contourf(phases, periods, corr, title='Correlation', newfig=False, savename=None,
                               colorbar=True, cblbl=None, cbfmt=None, vmin=None, vmax=None,

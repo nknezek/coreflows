@@ -129,7 +129,8 @@ class Advect(_cm.models.SphereHarmBase):
         else:
             lm = (Nth-2)/2
         SH = self._convert_SHin(vSH, l_max=l_max)
-        _,dth_v, _, _ = _sht.shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
+        out = _sht.shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
+        dth_v = out[1]
         return dth_v
 
     def dph_v(self, vSH, l_max=14, Nth=None):
@@ -146,7 +147,8 @@ class Advect(_cm.models.SphereHarmBase):
         else:
             lm = (Nth-2)/2
         SH = self._convert_SHin(vSH, l_max=l_max)
-        _,_,dph_v,_ = _sht.shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
+        out = _sht.shtools.MakeGravGridDH(SH, 3480, 3480, sampling=2, normal_gravity=0, lmax_calc=l_max, lmax=lm)
+        dph_v = out[2]
         return dph_v
 
     def advSV(self, vthSH, vphSH, BSH, magmodel=None, l_max=14, Nth=None, B_lmax = None, v_lmax=None, B_in_vSHform=False):
